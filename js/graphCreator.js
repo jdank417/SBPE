@@ -32,7 +32,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     defs.append('svg:marker')
       .attr('id', thisGraph.containerId + '-end-arrow')
       .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 42)
+      .attr('refX', 10)
       .attr('markerWidth', 5)
       .attr('markerHeight', 5)
       .attr('orient', 'auto')
@@ -54,7 +54,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     defs.append('marker')
       .attr('id', thisGraph.containerId + '-selected-end-arrow')
       .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 30)
+      .attr('refX', 10)
       .attr('markerWidth', 5)
       .attr('markerHeight', 5)
       .attr('orient', 'auto')
@@ -62,6 +62,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       .attr('d', 'M0,-5L10,0L0,5')
       .attr('fill', 'rgb(229, 172, 247)');
 
+    thisGraph.defs = defs;
     thisGraph.svg = svg;
     thisGraph.show_position = svg.append("text")
       .attr({
@@ -91,14 +92,14 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
           y: d.y
         };
       })
-      .on("dragstart", function() {d3.select(this).select("circle").attr("r", thisGraph.consts.nodeRadius + thisGraph.consts.nodeRadiusVary);})
+      .on("dragstart", function() {d3.select(this).classed('dragging', true);})
       .on("drag", function(args) {
         thisGraph.state.justDragged = true;
         thisGraph.dragmove.call(thisGraph, args);
       })
       .on("dragend", function(args) {
         // args = circle that was dragged
-        d3.select(this).select("circle").attr("r", thisGraph.consts.nodeRadius - thisGraph.consts.nodeRadiusVary);
+        d3.select(this).classed('dragging', false);
       });
 
     // listen for key events
@@ -1370,7 +1371,10 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
                 deadlineXpdl.limitAgentClassName+
                 conventionalXpdl.participantID+
             '   <ExtendedAttribute Name="XOffset" Value="'+node.x+'"/>'+
-            '   <ExtendedAttribute Name="YOffset" Value="'+node.y+'"/>';
+            '   <ExtendedAttribute Name="YOffset" Value="'+node.y+'"/>'+
+                (node.fillColor ? '<ExtendedAttribute Name="FillColor" Value="'+xmlEsc(node.fillColor)+'"/>' : '')+
+                (node.borderColor ? '<ExtendedAttribute Name="BorderColor" Value="'+xmlEsc(node.borderColor)+'"/>' : '')+
+                (node.textColor ? '<ExtendedAttribute Name="TextColor" Value="'+xmlEsc(node.textColor)+'"/>' : '');
     if (extendAttr) {
       extendAttr.forEach(function(ext) {
         ExtendedAttributes +=
@@ -1760,6 +1764,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
                       '       <ExtendedAttribute Name="TransitionEventType"/>') +
                               conditypeXpdl +
                       '       <ExtendedAttribute Name="RoutingType" Value="'+edge.drawLine+'"/>' +
+                              (edge.color ? '<ExtendedAttribute Name="LineColor" Value="'+xmlEsc(edge.color)+'"/>' : '') +
                               extendedAttrsXpdl +
                       '    </ExtendedAttributes>' +
                       '</Transition>';
@@ -2001,6 +2006,9 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     var dif_x = des.x - d.x,
       dif_y = des.y - d.y;
     var link;
+    if (Math.abs(dif_x) < 1 || Math.abs(dif_y) < 1) { // aligned: no elbow needed
+      return 'M' + d.x + ',' + d.y + 'L' + des.x + ',' + des.y;
+    }
     if (Math.abs(dif_x) > Math.abs(dif_y)) { // connect left/right
       if (dif_x > 0 && dif_y > 0) { //quadrant I (200,200-300,300)
         // <path d="M 200,200 L 245,200 M 245,200 A 5,5,0,0,1 250,205 M 250,205 L 250,295 M 250,295 A 5,5,0,0,0 255,300 M 255,300 L 300,300" fill="none" stroke="#F18C16" stroke-width="1"></path>
@@ -2147,6 +2155,118 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       d.y = Math.max(Math.min(d3.event.y, svg_heigh-radius), radius);
       thisGraph.updateGraph();*/
     }
+  };
+
+  GraphCreator.prototype.renderKey = function(d) {
+    return d.type + '|' + d.title + '|' + (d.fillColor || '') + '|' + (d.borderColor || '') + '|' + (d.textColor || '');
+  };
+
+  // draw a node: rounded rectangle sized to its label (activities) or a small circle (start/end)
+  GraphCreator.prototype.renderNode = function(gEl, d) {
+    var geo = nodeGeometry(d);
+    gEl.selectAll('*').remove();
+    var shape;
+    if (geo.shape === 'circle') {
+      shape = gEl.append('circle').attr('r', geo.r);
+    } else {
+      shape = gEl.append('rect').attr({
+        x: -geo.w / 2,
+        y: -geo.h / 2,
+        width: geo.w,
+        height: geo.h,
+        rx: NODE_STYLE.cornerRadius,
+        ry: NODE_STYLE.cornerRadius
+      });
+    }
+    shape.classed('node-shape', true);
+    if (d.fillColor) shape.node().style.setProperty('fill', d.fillColor, 'important');
+    if (d.borderColor) shape.node().style.setProperty('stroke', d.borderColor);
+    if (geo.shape === 'circle' && (d.fillColor || d.borderColor)) {
+      // start/end normally have no outline; with file colours (often white) they need one
+      shape.node().style.setProperty('stroke', d.borderColor || '#555', 'important');
+      shape.node().style.setProperty('stroke-width', '1.5px', 'important');
+    }
+
+    var text = gEl.append('text').attr('text-anchor', 'middle');
+    var textColor = d.textColor || (d.fillColor ? contrastTextColor(d.fillColor) : null);
+    if (textColor) text.node().style.setProperty('fill', textColor, 'important');
+    var lines = geo.lines;
+    var lh = NODE_STYLE.lineHeight;
+    lines.forEach(function(line, i) {
+      text.append('tspan')
+        .attr('x', 0)
+        .attr('y', (i - (lines.length - 1) / 2) * lh)
+        .attr('dy', '0.35em')
+        .text(line);
+    });
+    if (lines.length && d.title && lines.join(' ') !== d.title) {
+      gEl.append('title').text(d.title); // full name on hover when the label was shortened
+    }
+    // non-enumerable: a render cache, not part of the exported data
+    Object.defineProperty(d, '_renderKey', {value: this.renderKey(d), writable: true, configurable: true, enumerable: false});
+  };
+
+  // point where the line from a node's centre towards `toward` leaves its shape
+  function clipToShape(node, toward) {
+    var geo = nodeGeometry(node);
+    var dx = toward.x - node.x,
+      dy = toward.y - node.y;
+    if (!dx && !dy) return {x: node.x, y: node.y};
+    if (geo.shape === 'circle') {
+      var len = Math.sqrt(dx * dx + dy * dy);
+      return {x: node.x + dx / len * geo.r, y: node.y + dy / len * geo.r};
+    }
+    var kx = dx ? (geo.w / 2) / Math.abs(dx) : Infinity,
+      ky = dy ? (geo.h / 2) / Math.abs(dy) : Infinity;
+    var k = Math.min(kx, ky, 1);
+    return {x: node.x + dx * k, y: node.y + dy * k};
+  }
+
+  // edge path from boundary to boundary (straight, or with elbows for SIMPLEROUTING)
+  GraphCreator.prototype.linkPath = function(d) {
+    var s = d.source,
+      t = d.target;
+    if (d.drawLine == 'SIMPLEROUTING') {
+      var gs = nodeGeometry(s),
+        gt = nodeGeometry(t);
+      var dx = t.x - s.x,
+        dy = t.y - s.y;
+      // getLink_d picks left/right vs top/bottom from the endpoints it gets,
+      // so only use side endpoints that lead to the same choice
+      var sx = dx > 0 ? 1 : -1,
+        sy = dy > 0 ? 1 : -1;
+      var hs = {x: s.x + sx * gs.w / 2, y: s.y},
+        he = {x: t.x - sx * gt.w / 2, y: t.y};
+      var vs = {x: s.x, y: s.y + sy * gs.h / 2},
+        ve = {x: t.x, y: t.y - sy * gt.h / 2};
+      var hOk = (he.x - hs.x) * sx > 0 && Math.abs(he.x - hs.x) > Math.abs(he.y - hs.y);
+      var vOk = (ve.y - vs.y) * sy > 0 && Math.abs(ve.x - vs.x) <= Math.abs(ve.y - vs.y);
+      if (Math.abs(dx) > Math.abs(dy) ? hOk : !vOk && hOk) return this.getLink_d(hs, he);
+      if (vOk) return this.getLink_d(vs, ve);
+    }
+    var a = clipToShape(s, t),
+      b = clipToShape(t, s);
+    return 'M' + a.x + ',' + a.y + 'L' + b.x + ',' + b.y;
+  };
+
+  // arrowhead marker matching an edge colour (created on demand)
+  GraphCreator.prototype.markerFor = function(color) {
+    var base = this.containerId + '-end-arrow';
+    if (!color) return base;
+    var id = base + '-' + color.replace('#', '');
+    if (!this.defs.select('#' + id).node()) {
+      this.defs.append('svg:marker')
+        .attr('id', id)
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 10)
+        .attr('markerWidth', 5)
+        .attr('markerHeight', 5)
+        .attr('orient', 'auto')
+        .append('svg:path')
+        .attr('d', 'M0,-5L10,0L0,5')
+        .style('fill', color);
+    }
+    return id;
   };
 
   GraphCreator.prototype.deleteGraph = function() {
@@ -2622,20 +2742,13 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
         }
       })
       .attr("d", function(d) {
-        if (d.drawLine == 'NOROUTING') {
-          return "M" + d.source.x + "," + d.source.y + "L" + d.target.x + "," + d.target.y;
-        }
-        if (d.drawLine == 'SIMPLEROUTING') {
-          var start = {
-            x: d.source.x,
-            y: d.source.y
-          };
-          var des = {
-            x: d.target.x,
-            y: d.target.y
-          };
-          return thisGraph.getLink_d(start, des);
-        }
+        return thisGraph.linkPath(d);
+      })
+      .style('stroke', function(d) {
+        return d.color || null;
+      })
+      .style('marker-end', function(d) {
+        return 'url(#' + thisGraph.markerFor(d.color) + ')';
       });
     refresh(link); // IE11 compatibility
 
@@ -2652,20 +2765,13 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
         }
       })
       .attr("d", function(d) {
-        if (d.drawLine == 'NOROUTING') {
-          return "M" + d.source.x + "," + d.source.y + "L" + d.target.x + "," + d.target.y;
-        }
-        if (d.drawLine == 'SIMPLEROUTING') {
-          var start = {
-            x: d.source.x,
-            y: d.source.y
-          };
-          var des = {
-            x: d.target.x,
-            y: d.target.y
-          };
-          return thisGraph.getLink_d(start, des);
-        }
+        return thisGraph.linkPath(d);
+      })
+      .style('stroke', function(d) {
+        return d.color || null;
+      })
+      .style('marker-end', function(d) {
+        return 'url(#' + thisGraph.markerFor(d.color) + ')';
       })
       .on("mousedown", function(d) {
         thisGraph.pathMouseDown.call(thisGraph, d3.select(this), d);
@@ -2682,13 +2788,9 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       return d.id;
     });
     thisGraph.circles.attr("transform", function(d) {
-      if (d == state.selectedNode) { // update node name
-        var tspan = d3.select(this).select('tspan');
-        if (tspan.text() !== d.title) {
-          tspan.text(d.title);
-        }
-      }
       return "translate(" + d.x + "," + d.y + ")";
+    }).each(function(d) { // re-draw when the name or colours changed
+      if (d._renderKey !== thisGraph.renderKey(d)) thisGraph.renderNode(d3.select(this), d);
     });
 
     // add new nodes
@@ -2716,9 +2818,6 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       })
       .call(thisGraph.drag);
 
-    newGs.append("circle")
-      .attr("r", String(consts.nodeRadius));
-
     newGs.each(function(d) {
       switch (d.type) {
         case 'start':
@@ -2728,7 +2827,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
           d3.select(this).classed('end', true);
           break;
       }
-      thisGraph.insertTitleLinebreaks(d3.select(this), d);
+      thisGraph.renderNode(d3.select(this), d);
     });
 
     // remove old nodes

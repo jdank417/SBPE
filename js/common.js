@@ -343,3 +343,186 @@ function htmlEsc(str) {
 	return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 		.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+
+/* ------------------------------------------------------------------ */
+/* Node geometry: activities are rounded rectangles sized to their     */
+/* label, start/end are small circles. Shared by the renderer and the  */
+/* XPDL importer (which needs the sizes to space imported diagrams).   */
+/* ------------------------------------------------------------------ */
+var NODE_STYLE = {
+	font: '12px Arial, Helvetica, sans-serif',
+	letterSpacing: 0.5,
+	lineHeight: 15,
+	padX: 12,
+	padY: 9,
+	minW: 96,
+	minH: 44,
+	maxTextW: 150,
+	maxLines: 5,
+	cornerRadius: 10,
+	eventRadius: 22
+};
+
+var _labelCtx = null;
+function measureLabel(text) {
+	text = String(text);
+	if (_labelCtx === null) {
+		try {
+			_labelCtx = document.createElement('canvas').getContext('2d');
+			_labelCtx.font = NODE_STYLE.font;
+		} catch (e) {
+			_labelCtx = false;
+		}
+	}
+	var w = _labelCtx ? _labelCtx.measureText(text).width : text.length * 6.5;
+	return w + text.length * NODE_STYLE.letterSpacing;
+}
+
+// wrap a label into lines no wider than maxWidth; long words are broken at
+// camelCase / punctuation boundaries, and as a last resort by characters
+function wrapLabel(text, maxWidth) {
+	maxWidth = maxWidth || NODE_STYLE.maxTextW;
+	var tokens = [];
+	String(text || '').trim().split(/\s+/).forEach(function(word) {
+		if (!word) return;
+		if (measureLabel(word) <= maxWidth) {
+			tokens.push({t: word, glue: false});
+			return;
+		}
+		var parts = word.replace(/([a-z0-9])([A-Z])/g, '$1\u0001$2').replace(/([_\-.\/])/g, '$1\u0001').split('\u0001');
+		parts.forEach(function(part, i) {
+			if (measureLabel(part) <= maxWidth) {
+				tokens.push({t: part, glue: i > 0});
+				return;
+			}
+			// first chunk joins the previous part like a normal part, the rest always glue
+			var chunk = '',
+				first = true;
+			for (var c = 0; c < part.length; c++) {
+				if (chunk && measureLabel(chunk + part[c]) > maxWidth) {
+					tokens.push({t: chunk, glue: first ? i > 0 : true});
+					first = false;
+					chunk = '';
+				}
+				chunk += part[c];
+			}
+			if (chunk) tokens.push({t: chunk, glue: first ? i > 0 : true});
+		});
+	});
+	var lines = [],
+		line = '';
+	tokens.forEach(function(tok) {
+		var candidate = line ? line + (tok.glue ? '' : ' ') + tok.t : tok.t;
+		if (!line || measureLabel(candidate) <= maxWidth) {
+			line = candidate;
+		} else {
+			lines.push(line);
+			line = tok.t;
+		}
+	});
+	if (line) lines.push(line);
+	if (lines.length > NODE_STYLE.maxLines) {
+		lines = lines.slice(0, NODE_STYLE.maxLines);
+		var last = lines[lines.length - 1];
+		while (last.length > 1 && measureLabel(last + '…') > maxWidth) last = last.slice(0, -1);
+		lines[lines.length - 1] = last + '…';
+	}
+	return lines.length ? lines : [''];
+}
+
+// {shape, w, h, r?, lines?} for a node, cached until its title changes
+function nodeGeometry(node) {
+	var key = node.type + '|' + node.title;
+	if (node._geo && node._geo.key === key) return node._geo;
+	var geo;
+	if (node.type === 'start' || node.type === 'end') {
+		var r = NODE_STYLE.eventRadius;
+		geo = {shape: 'circle', r: r, w: r * 2, h: r * 2, lines: [node.title || '']};
+	} else {
+		var lines = wrapLabel(node.title);
+		var textW = 0;
+		lines.forEach(function(l) {
+			textW = Math.max(textW, measureLabel(l));
+		});
+		geo = {
+			shape: 'rect',
+			w: Math.ceil(Math.max(NODE_STYLE.minW, textW + NODE_STYLE.padX * 2)),
+			h: Math.ceil(Math.max(NODE_STYLE.minH, lines.length * NODE_STYLE.lineHeight + NODE_STYLE.padY * 2)),
+			lines: lines
+		};
+	}
+	geo.key = key;
+	// non-enumerable so it never ends up in exported JSON
+	try {
+		Object.defineProperty(node, '_geo', {value: geo, writable: true, configurable: true, enumerable: false});
+	} catch (e) {
+		node._geo = geo;
+	}
+	return geo;
+}
+
+/* ------------------------------------------------------------------ */
+/* Colours                                                             */
+/* ------------------------------------------------------------------ */
+var _colorCtx = null;
+
+// Parse the colour formats found in XPDL files into "#rrggbb" (null if
+// missing, unparseable or fully transparent):
+//   "220,220,220" / "220;220;220"  (JaWE/TWE)
+//   "-16553830" / "16777215"       (.NET signed ARGB ints, e.g. Bizagi)
+//   "#FF9999", "#AARRGGBB", "#abc", CSS names ("light blue"), rgb(...)
+function parseXpdlColor(value) {
+	if (value === undefined || value === null) return null;
+	var s = String(value).trim();
+	if (!s) return null;
+	var r, g, b, a = 255, m;
+	if ((m = /^(\d{1,3})\s*[,;]\s*(\d{1,3})\s*[,;]\s*(\d{1,3})(?:\s*[,;]\s*(\d{1,3}))?$/.exec(s))) {
+		r = +m[1]; g = +m[2]; b = +m[3];
+		if (m[4] !== undefined) a = +m[4];
+	} else if (/^-?\d+$/.test(s)) {
+		var n = parseInt(s, 10);
+		var u = n >>> 0;
+		r = (u >>> 16) & 255; g = (u >>> 8) & 255; b = u & 255;
+		a = n >= 0 && n <= 0xFFFFFF ? 255 : (u >>> 24) & 255;
+	} else if ((m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(s))) { // .NET style #AARRGGBB
+		a = parseInt(m[1], 16); r = parseInt(m[2], 16); g = parseInt(m[3], 16); b = parseInt(m[4], 16);
+	} else if ((m = /^#?([0-9a-f]{6})$/i.exec(s))) {
+		var v = parseInt(m[1], 16);
+		r = (v >> 16) & 255; g = (v >> 8) & 255; b = v & 255;
+	} else {
+		// let the browser parse names, #abc, rgb(), hsl()...
+		if (_colorCtx === null) {
+			try {
+				_colorCtx = document.createElement('canvas').getContext('2d');
+			} catch (e) {
+				_colorCtx = false;
+			}
+		}
+		if (!_colorCtx) return null;
+		var probe = s.replace(/\s+/g, '').toLowerCase();
+		_colorCtx.fillStyle = '#010203';
+		_colorCtx.fillStyle = probe;
+		var out = _colorCtx.fillStyle;
+		if (out === '#010203' && probe !== '#010203') return null;
+		if ((m = /^#([0-9a-f]{6})$/i.exec(out))) return '#' + m[1].toLowerCase();
+		if ((m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(out))) {
+			r = +m[1]; g = +m[2]; b = +m[3];
+			if (m[4] !== undefined) a = Math.round(parseFloat(m[4]) * 255);
+		} else {
+			return null;
+		}
+	}
+	if (a === 0 || r > 255 || g > 255 || b > 255) return null;
+	return '#' + [r, g, b].map(function(x) {
+		return ('0' + x.toString(16)).slice(-2);
+	}).join('');
+}
+
+// readable label colour for a fill: white on dark fills, otherwise default
+function contrastTextColor(hex) {
+	var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+	if (!m) return null;
+	var v = parseInt(m[1], 16);
+	var lum = (0.299 * ((v >> 16) & 255) + 0.587 * ((v >> 8) & 255) + 0.114 * (v & 255)) / 255;
+	return lum < 0.5 ? '#ffffff' : '#1b1f3b';
+}

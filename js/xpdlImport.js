@@ -249,12 +249,41 @@
     autoAcceptAllAssignments: 1, isResponsible: 1, deadline: 1, ActivityEndEvent: 1,
     ActivityCreateEvent: 1, FinishRule: 1, warnTimeiFrequency: 1, warnTime: 1,
     warnAgentClassName: 1, LimitAgentClassName: 1, ParticipantID: 1, XOffset: 1, YOffset: 1,
-    StartOfBlock: 1, EndOfBlock: 1
+    StartOfBlock: 1, EndOfBlock: 1, FillColor: 1, BorderColor: 1, TextColor: 1
   };
   var KNOWN_TRANSITION_EXT = {
     condiException: 1, condixml: 1, TransitionRuleType: 1, TransitionEvent: 1,
-    TransitionEventType: 1, conditype: 1, RoutingType: 1
+    TransitionEventType: 1, conditype: 1, RoutingType: 1, LineColor: 1
   };
+
+  function color(v) {
+    return typeof global.parseXpdlColor === 'function' ? global.parseXpdlColor(v) : null;
+  }
+
+  // FillColor / BorderColor from NodeGraphicsInfo (any tool), or from the
+  // extended attributes this editor writes
+  function colorsOf(el, em) {
+    var out = {fill: color(em.FillColor), border: color(em.BorderColor), text: color(em.TextColor)};
+    kids(kid(el, 'NodeGraphicsInfos'), 'NodeGraphicsInfo').forEach(function(info) {
+      if (!out.fill) out.fill = color(attr(info, 'FillColor'));
+      if (!out.border) out.border = color(attr(info, 'BorderColor'));
+    });
+    return out;
+  }
+
+  function lineColorOf(tr, em) {
+    var c = color(em.LineColor);
+    kids(kid(tr, 'ConnectorGraphicsInfos'), 'ConnectorGraphicsInfo').forEach(function(info) {
+      if (!c) c = color(attr(info, 'BorderColor')) || color(attr(info, 'FillColor'));
+    });
+    return c;
+  }
+
+  function applyColors(node, c) {
+    if (c.fill) node.fillColor = c.fill;
+    if (c.border) node.borderColor = c.border;
+    if (c.text) node.textColor = c.text;
+  }
 
   function isLayoutExt(name) {
     return /^JaWE_GRAPH_/.test(name) || /^(Start|End)Of(Workflow|Block)$/.test(name);
@@ -409,6 +438,7 @@
         type: info.type
       };
       if (name) node.eventName = name;
+      applyColors(node, colorsOf(act, em));
       ctx.stats.startEnd++;
       return {node: node, pos: rawPosition(act, em), rawId: rawId};
     }
@@ -487,6 +517,7 @@
       eventTypeId: null
     };
     if (info.subFlow) node.subFlow = info.subFlow;
+    applyColors(node, colorsOf(act, em));
     ctx.stats.activities++;
     return {node: node, pos: rawPosition(act, em), rawId: rawId, ext: ext, info: info};
   }
@@ -647,7 +678,13 @@
 
   /* --------------------------- layout -------------------------------- */
 
-  var SPACING = 120;
+  var GAP_X = 50,
+    GAP_Y = 26;
+
+  function boxOf(n) {
+    if (typeof global.nodeGeometry === 'function') return global.nodeGeometry(n);
+    return n.type === 'activity' ? {w: 110, h: 46} : {w: 44, h: 44};
+  }
 
   function autoLayout(nodes, edges) {
     var index = {};
@@ -770,15 +807,34 @@
         }
       }
 
-      var maxSize = Math.max.apply(null, layers.map(function(l) { return l.length; }));
+      // columns as wide as their widest node, nodes stacked by their heights
+      var colX = [],
+        x = 80,
+        colH = [],
+        maxH = 0;
       layers.forEach(function(l, li) {
-        var offset = (maxSize - l.length) * SPACING / 2;
-        l.forEach(function(i, k) {
-          nodes[i].x = 80 + li * 170;
-          nodes[i].y = top + offset + k * SPACING;
+        var w = 0,
+          h = 0;
+        l.forEach(function(i) {
+          var b = boxOf(nodes[i]);
+          w = Math.max(w, b.w);
+          h += b.h + GAP_Y;
+        });
+        colX[li] = x + w / 2;
+        x += w + GAP_X;
+        colH[li] = h - GAP_Y;
+        maxH = Math.max(maxH, colH[li]);
+      });
+      layers.forEach(function(l, li) {
+        var y = top + (maxH - colH[li]) / 2;
+        l.forEach(function(i) {
+          var b = boxOf(nodes[i]);
+          nodes[i].x = Math.round(colX[li]);
+          nodes[i].y = Math.round(y + b.h / 2);
+          y += b.h + GAP_Y;
         });
       });
-      top += maxSize * SPACING + 40;
+      top += maxH + 60;
     });
   }
 
@@ -798,6 +854,37 @@
       if (best < Infinity) out.push(best);
     }
     return out.sort(function(a, b) { return a - b; });
+  }
+
+  // Scale factor that separates (nearly) all boxes: for each node, the
+  // smallest scale at which it no longer overlaps any other node; take the
+  // 90th percentile so a few overlaps that exist in the source don't blow
+  // the whole drawing up. Very sparse drawings are compacted.
+  function scaleToFit(nodes) {
+    var n = nodes.length;
+    if (n < 2) return 1;
+    var boxes = nodes.map(boxOf);
+    var step = n > 400 ? Math.ceil(n / 400) : 1;
+    var need = [];
+    for (var i = 0; i < n; i += step) {
+      var worst = 0;
+      for (var j = 0; j < n; j++) {
+        if (i === j) continue;
+        var dx = Math.abs(nodes[i].x - nodes[j].x),
+          dy = Math.abs(nodes[i].y - nodes[j].y);
+        var sx = dx ? ((boxes[i].w + boxes[j].w) / 2 + 20) / dx : Infinity,
+          sy = dy ? ((boxes[i].h + boxes[j].h) / 2 + 14) / dy : Infinity;
+        var s = Math.min(sx, sy);
+        if (s > worst) worst = s;
+      }
+      need.push(worst);
+    }
+    need.sort(function(a, b) { return a - b; });
+    var p = need[Math.min(need.length - 1, Math.floor(need.length * 0.9))];
+    if (!isFinite(p)) p = 6;
+    if (p > 1.05) return Math.min(p, 6);
+    if (p < 0.5) return p / 0.6; // lots of empty space: tighten, keeping a margin
+    return 1;
   }
 
   // position every node, then scale/translate into the editor's space
@@ -845,19 +932,23 @@
     // this editor's own format is already in editor coordinates
     if (native && !missing) return;
 
-    // scale so circles don't overlap, and compact very sparse drawings
-    var dist = nearestDistances(nodes);
-    var nonzero = dist.filter(function(v) { return v >= 1; });
-    var p = nonzero.length ? nonzero[Math.floor(nonzero.length * 0.25)] : SPACING;
-    var s = 1;
-    // (thresholds leave a gap so re-importing an exported file doesn't rescale it)
-    if (p < 100) s = Math.min(SPACING / p, 6);
-    else if (p > 320) s = 200 / p;
-    var mx = Math.min.apply(null, nodes.map(function(n) { return n.x; }));
-    var my = Math.min.apply(null, nodes.map(function(n) { return n.y; }));
+    // scale so the boxes don't overlap, and compact very sparse drawings
+    var s = scaleToFit(nodes);
+    // scale, then move so the top-left box edges sit 40px from the origin
     nodes.forEach(function(n) {
-      n.x = Math.round((n.x - mx) * s + 80);
-      n.y = Math.round((n.y - my) * s + 80);
+      n.x *= s;
+      n.y *= s;
+    });
+    var left = Infinity,
+      top = Infinity;
+    nodes.forEach(function(n) {
+      var b = boxOf(n);
+      left = Math.min(left, n.x - b.w / 2);
+      top = Math.min(top, n.y - b.h / 2);
+    });
+    nodes.forEach(function(n) {
+      n.x = Math.round(n.x - left + 40);
+      n.y = Math.round(n.y - top + 40);
     });
   }
 
@@ -995,13 +1086,16 @@
         if (!a.name || KNOWN_TRANSITION_EXT[a.name] || isLayoutExt(a.name)) return;
         pc.extendedAttrs.push(JSON.stringify({name: a.name, value: a.value}));
       });
-      edges.push({
+      var edge = {
         edgeId: ctx.safeId(attr(tr, 'Id'), 'tra'),
         drawLine: routing(em.RoutingType || em.JaWE_GRAPH_TRANSITION_STYLE),
         postCondition: pc,
         source: from,
         target: to
-      });
+      };
+      var lc = lineColorOf(tr, em);
+      if (lc) edge.color = lc;
+      edges.push(edge);
       ctx.stats.transitions++;
     });
 

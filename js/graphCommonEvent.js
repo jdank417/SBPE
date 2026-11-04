@@ -198,7 +198,7 @@ function handleAddStartEnd() {
         title: 'S',
         component: 'startComponent',
         type: 'start',
-        x: node.x - 120,
+        x: node.x - nodeGeometry(node).w / 2 - 70,
         y: node.y
       };
       graph_active.nodes.push(start);
@@ -217,7 +217,7 @@ function handleAddStartEnd() {
         title: 'E',
         component: 'endComponent',
         type: 'end',
-        x: node.x + 120,
+        x: node.x + nodeGeometry(node).w / 2 + 70,
         y: node.y
       };
       graph_active.nodes.push(end);
@@ -890,8 +890,9 @@ function fitGraphToView(graph) {
   var maxX = 0,
     maxY = 0;
   graph.nodes.forEach(function(n) {
-    maxX = Math.max(maxX, n.x + 60);
-    maxY = Math.max(maxY, n.y + 60);
+    var geo = nodeGeometry(n);
+    maxX = Math.max(maxX, n.x + geo.w / 2 + 30);
+    maxY = Math.max(maxY, n.y + geo.h / 2 + 30);
   });
   var extent = graph.dragSvg.scaleExtent();
   var scale = Math.min(1, maxX ? width / maxX : 1, maxY ? height / maxY : 1);

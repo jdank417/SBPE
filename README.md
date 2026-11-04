@@ -26,6 +26,9 @@ Click the **folder icon** in the toolbar (or drop a `.xpdl` / `.xml` file onto t
 - **Encodings:** UTF-8, UTF-16, Windows-1252/Latin-1 and anything declared in the XML header
 - **Layouts:** XPDL 2.x `NodeGraphicsInfo` (absolute or lane-relative, horizontal or vertical pools),
   JaWE/TWE lane offsets, and this editor's own format. Files with no layout are arranged automatically
+- **Colors:** fill/border colors of activities and events, and line colors of transitions, in every format
+  tools use (`220,220,220`, `220;220;220`, .NET ARGB integers like `-16553830`, `#RRGGBB`, `#AARRGGBB`,
+  color names). They're kept when you save.
 - **Content:** activities, routes/gateways, sub-flows, block activities/embedded sub-processes (open them
   with right-click → Edit), BPMN start/end events, transitions and conditions, participants, deadlines,
   and extended attributes (unknown ones are kept, so they're written back out on export)
