@@ -73,6 +73,8 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     thisGraph.svgG = svg.append("g")
       .classed(thisGraph.consts.graphClass, true);
     var svgG = thisGraph.svgG;
+    // swim lanes (from opened XPDL files) are drawn behind everything else
+    thisGraph.lanesG = svgG.append('g').attr('class', 'lanes');
 
     // displayed when dragging between nodes
     thisGraph.dragLine = svgG.append('path')
@@ -242,7 +244,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
 
       var dt = ev.originalEvent.dataTransfer;
       if (dt && dt.files && dt.files.length) { // a file dropped from the desktop
-        if (typeof openXpdlFile === 'function') openXpdlFile(dt.files[0]);
+        if (typeof openXpdlFromDrop === 'function') openXpdlFromDrop(dt);
         return;
       }
       var trData = dt.getData('tr_data');
@@ -2747,6 +2749,76 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
   };
 
   // call to propagate changes to graph
+  // draw pool / lane bands with their headers
+  GraphCreator.prototype.renderLanes = function() {
+    var thisGraph = this,
+      L = thisGraph.lanes,
+      g = thisGraph.lanesG;
+    if (!g) return;
+    g.selectAll('*').remove();
+    if (!L || !L.bands || !L.bands.length) return;
+    var vertical = L.vertical;
+    var LANE_H = 28,
+      POOL_H = L.poolName ? 24 : 0;
+
+    // lanes reach past the furthest node
+    var far = 0;
+    thisGraph.nodes.forEach(function(n) {
+      var geo = nodeGeometry(n);
+      far = Math.max(far, vertical ? n.y + geo.h / 2 : n.x + geo.w / 2);
+    });
+    far += 140;
+
+    var addText = function(x, y, str, rotate, color) {
+      var t = g.append('text').attr('class', 'lane-label').attr('text-anchor', 'middle')
+        .attr('transform', 'translate(' + x + ',' + y + ')' + (rotate ? ' rotate(-90)' : ''))
+        .attr('dy', '0.35em').text(str);
+      if (color) t.style('fill', color);
+      return t;
+    };
+
+    if (L.mode === 'stacked') {
+      var first = L.bands[0],
+        last = L.bands[L.bands.length - 1];
+      var bodyStart = vertical ? first.y : first.x; // lane-relative origin
+      var crossEnd = Math.max(far, bodyStart + 600);
+      var lo = vertical ? first.x : first.y,
+        hi = vertical ? last.x + last.w : last.y + last.h;
+      if (POOL_H) {
+        var poolRect = vertical ?
+          {x: lo, y: bodyStart - LANE_H - POOL_H, w: hi - lo, h: POOL_H} :
+          {x: bodyStart - LANE_H - POOL_H, y: lo, w: POOL_H, h: hi - lo};
+        g.append('rect').attr('class', 'pool-header').attr(poolRect);
+        addText(poolRect.x + poolRect.w / 2, poolRect.y + poolRect.h / 2, L.poolName, !vertical);
+      }
+      L.bands.forEach(function(b, i) {
+        var body = vertical ?
+          {x: b.x, y: bodyStart, w: b.w, h: crossEnd - bodyStart} :
+          {x: bodyStart, y: b.y, w: crossEnd - bodyStart, h: b.h};
+        var head = vertical ?
+          {x: b.x, y: bodyStart - LANE_H, w: b.w, h: LANE_H} :
+          {x: bodyStart - LANE_H, y: b.y, w: LANE_H, h: b.h};
+        g.append('rect').attr('class', 'lane-body' + (i % 2 ? ' odd' : '')).attr(body);
+        var hr = g.append('rect').attr('class', 'lane-header').attr(head);
+        if (b.fill) hr.style('fill', b.fill);
+        addText(head.x + head.w / 2, head.y + head.h / 2, b.name || '', !vertical, b.fill ? contrastTextColor(b.fill) : null);
+      });
+    } else {
+      L.bands.forEach(function(b, i) {
+        g.append('rect').attr('class', 'lane-body' + (i % 2 ? ' odd' : '')).attr({x: b.x, y: b.y, width: b.w, height: b.h});
+        var head = vertical ? {x: b.x, y: b.y, w: b.w, h: LANE_H} : {x: b.x, y: b.y, w: LANE_H, h: b.h};
+        var hr = g.append('rect').attr('class', 'lane-header').attr(head);
+        if (b.fill) hr.style('fill', b.fill);
+        addText(head.x + head.w / 2, head.y + head.h / 2, b.name || '', !vertical, b.fill ? contrastTextColor(b.fill) : null);
+      });
+    }
+    g.selectAll('rect').each(function() { // d3 v3 attr({w,h}) -> width/height
+      var r = d3.select(this);
+      if (r.attr('w') !== null) r.attr('width', r.attr('w')).attr('w', null);
+      if (r.attr('h') !== null) r.attr('height', r.attr('h')).attr('h', null);
+    });
+  };
+
   GraphCreator.prototype.updateGraph = function() {
     var thisGraph = this,
       consts = thisGraph.consts,
@@ -2758,6 +2830,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       return String(d.source.id) + "+" + String(d.target.id);
     });
     var paths = thisGraph.paths;
+    thisGraph.renderLanes();
     // update existing paths
     var link = paths.style('marker-end', 'url(#'+thisGraph.containerId+'-end-arrow)')
       .classed(consts.selectedClass, function(d) {
@@ -3009,16 +3082,18 @@ function initCommonEvent() {
   $('#helper').on('click', handleHelp);
   $('#flowComponents .components-btn').on('click', handleComponentsBtn);
   $("#delete-graph").on("click", clearGraph);
-  $('.editor-toolbar .icon.save').closest('.column').on('click', handleSave);
+  $('.editor-toolbar .icon.save').closest('.column').on('click', function(e) {
+    handleSave(e.shiftKey); // Shift+click: Save As
+  });
   // the page is wrapped in a form left over from the original server version:
   // never let it submit (Enter in a field would POST the page away)
   $('#containerForm').on('submit', function(e) {
     e.preventDefault();
   });
   $(document).on('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String.fromCharCode(e.which).toLowerCase() === 's') {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && String.fromCharCode(e.which).toLowerCase() === 's') {
       e.preventDefault();
-      handleSave();
+      handleSave(e.shiftKey); // Ctrl/Cmd+Shift+S: Save As
     }
   });
   $('#rMenu .item').on('click', handleRightMenu);

@@ -177,3 +177,33 @@ g.end text {
   font-weight: 550;
 }
 
+
+/* swim lanes */
+g.lanes rect.lane-body {
+  fill: #fdfdff;
+  stroke: #b9bcd6;
+  stroke-width: 1px;
+}
+g.lanes rect.lane-body.odd {
+  fill: #f6f7fc;
+}
+g.lanes rect.lane-header {
+  fill: #e4e6f2;
+  stroke: #b9bcd6;
+  stroke-width: 1px;
+}
+g.lanes rect.pool-header {
+  fill: #d6d9ec;
+  stroke: #9fa3c6;
+  stroke-width: 1px;
+}
+g.lanes text.lane-label {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  fill: #2c2f55;
+  pointer-events: none;
+}
+g.lanes rect {
+  pointer-events: none;
+}

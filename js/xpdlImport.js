@@ -228,6 +228,7 @@
     });
 
     return {
+      text: str,
       doc: doc,
       pkg: pkg,
       id: pkg ? attr(pkg, 'Id') : null,
@@ -312,6 +313,46 @@
       s = s.slice(1, -1).trim();
     }
     return s;
+  }
+
+  // attach data that must not show up in JSON exports or be copied around
+  function hide(obj, key, value) {
+    Object.defineProperty(obj, key, {value: value, writable: true, configurable: true, enumerable: false});
+    return value;
+  }
+
+  // the fields the editor can change; saving compares against these
+  function snapshotNode(n) {
+    var c = n.conventional || {},
+      t = n.timeoutLimit || {},
+      h = n.highLevel || {},
+      m = n.monitorinf || {},
+      f = n.frontCondition || {};
+    return JSON.stringify({
+      title: n.title, description: c.description || '', performer: c.performer || '',
+      startMode: c.startMode || '', finishMode: c.finishMode || '', limit: t.limitTime || '',
+      deadline: t.deadline || [], convergeType: f.convergeType || '',
+      fill: n.fillColor || '', border: n.borderColor || '', text: n.textColor || '',
+      extendAttr: n.extendAttr || [],
+      other: {
+        taskAssignMode: c.taskAssign, MustActivity: c.MustActivity, isMulInstance: c.isMulInstance,
+        autoAcceptAllAssignments: c.autoAcceptAllAssignments, isResponsible: c.isResponsible,
+        completeAllAssignments: c.completeAllAssignments, assignmentsOrder: c.assignmentsOrder,
+        ActivityEndEvent: h.activityEndEvent, ActivityCreateEvent: h.activityCreateEvent, FinishRule: h.finishRule,
+        isResponsibleTem: m.isResponsibleTem, responsible: m.responsible && m.responsible.join ? m.responsible.join(',') : m.responsible,
+        warnTime: t.warnTime, warnAgentClassName: t.warnAgentClassName, LimitAgentClassName: t.limitAgentClassName,
+        isCreateNew: f.isCreateNew, syncType: f.syncType ? f.syncType + '|' + (f.voteText || '') : ''
+      }
+    });
+  }
+
+  function snapshotEdge(e) {
+    var p = e.postCondition || {};
+    return JSON.stringify({
+      name: p.edgeName || '', description: p.description || '', conditype: p.conditype || '',
+      condition: p.condition_data || '', exception: p.condiException || '', color: e.color || '',
+      ext: p.extendedAttrs || [], drawLine: e.drawLine || ''
+    });
   }
 
   function Context(pkgInfo, proc) {
@@ -440,7 +481,7 @@
       if (name) node.eventName = name;
       applyColors(node, colorsOf(act, em));
       ctx.stats.startEnd++;
-      return {node: node, pos: rawPosition(act, em), rawId: rawId};
+      return {node: node, pos: rawPosition(act, em), rawId: rawId, el: act};
     }
 
     var title = name;
@@ -519,7 +560,7 @@
     if (info.subFlow) node.subFlow = info.subFlow;
     applyColors(node, colorsOf(act, em));
     ctx.stats.activities++;
-    return {node: node, pos: rawPosition(act, em), rawId: rawId, ext: ext, info: info};
+    return {node: node, pos: rawPosition(act, em), rawId: rawId, ext: ext, info: info, el: act};
   }
 
   /* ---------------------- start / end markers ------------------------ */
@@ -534,6 +575,8 @@
       if (m1) {
         var p = String(a.value).split(';');
         markers.push({
+          raw: a.value,
+          rawName: a.name,
           type: m1[1] === 'Start' ? 'start' : 'end',
           lane: p[0] && p[0] !== 'none' ? p[0] : '',
           activity: p[1] && p[1] !== '-1' ? p[1] : '',
@@ -549,6 +592,8 @@
           if (i > 0) kv[pair.slice(0, i).trim()] = pair.slice(i + 1).trim();
         });
         markers.push({
+          raw: a.value,
+          rawName: a.name,
           type: m2[1] === 'START' ? 'start' : 'end',
           lane: kv.JaWE_GRAPH_PARTICIPANT_ID || '',
           activity: kv.CONNECTING_ACTIVITY_ID || '',
@@ -581,9 +626,14 @@
   // JaWE-style offsets are relative to the participant's swim lane: stack the
   // lanes top to bottom (in the given order) and shift each item by its lane's top
   // vertical pools have their lanes side by side, so stack along x instead
-  function stackLanes(items, order, vertical) {
+  // returns the lane bands [{id, start, size}] along the stacking axis
+  // (lanes in `keepEmpty` get a band even when nothing is in them)
+  function stackLanes(items, order, vertical, keepEmpty) {
     var axis = vertical ? 'x' : 'y';
     var bottom = {};
+    (keepEmpty || []).forEach(function(l) {
+      bottom[l] = 0;
+    });
     items.forEach(function(it) {
       var l = it.lane || '';
       bottom[l] = Math.max(bottom[l] || 0, it[axis] + (vertical ? 90 : 60));
@@ -593,15 +643,19 @@
       if (order.indexOf(l) === -1) order.push(l);
     });
     var top = {},
-      acc = 0;
+      acc = 0,
+      bands = [];
     order.forEach(function(l) {
       if (!(l in bottom)) return;
       top[l] = acc;
-      acc += Math.max(bottom[l] + 30, 120);
+      var size = Math.max(bottom[l] + 30, 120);
+      bands.push({id: l, start: acc, size: size});
+      acc += size;
     });
     items.forEach(function(it) {
       it[axis] += top[it.lane || ''] || 0;
     });
+    return bands;
   }
 
   function isVertical(ctx) {
@@ -610,8 +664,32 @@
     return String(o).toUpperCase() === 'VERTICAL';
   }
 
+  function participantName(ctx, id) {
+    var lists = [kid(ctx.proc.el, 'Participants')];
+    if (ctx.pkgInfo.pkg) lists.push(kid(ctx.pkgInfo.pkg, 'Participants'));
+    for (var i = 0; i < lists.length; i++) {
+      var ps = kids(lists[i], 'Participant');
+      for (var j = 0; j < ps.length; j++) {
+        if (attr(ps[j], 'Id') === id) return cleanName(attr(ps[j], 'Name')) || id;
+      }
+    }
+    return id;
+  }
+
+  // JaWE 1.x/2.x: lanes are participants
   function resolveJaweLanes(ctx, items) {
-    stackLanes(items, laneOrder(ctx, items), isVertical(ctx));
+    var vertical = isVertical(ctx);
+    var pem = extMap(extAttrs(ctx.proc.el));
+    var declared = (pem.JaWE_GRAPH_WORKFLOW_PARTICIPANT_ORDER || pem.ParticipantVisualOrder || '')
+      .split(/[;,]/).map(function(s) { return s.trim(); }).filter(Boolean);
+    var bands = stackLanes(items, laneOrder(ctx, items), vertical, declared);
+    return {
+      mode: 'stacked',
+      vertical: vertical,
+      bands: bands.map(function(b) {
+        return {id: b.id, start: b.start, size: b.size, name: b.id ? participantName(ctx, b.id) : '', performer: b.id};
+      })
+    };
   }
 
   // XPDL 2.x coordinates are normally absolute, but some tools write them
@@ -619,8 +697,10 @@
   // give lanes no geometry at all. Handle all three.
   function resolveNgiLanes(ctx, items) {
     var pkg = ctx.pkgInfo.pkg;
-    if (!pkg) return;
+    if (!pkg) return null;
     var lanes = {},
+      laneEls = {},
+      ownLanes = [],
       laneOrderList = [];
     var pools = kids(kid(pkg, 'Pools'), 'Pool');
     // the process's own pool first, so its lanes come first in the stacking order
@@ -632,6 +712,8 @@
       kids(kid(pool, 'Lanes'), 'Lane').forEach(function(lane) {
         var id = attr(lane, 'Id');
         laneOrderList.push(id);
+        laneEls[id] = lane;
+        if (pool === ctx.proc.pool) ownLanes.push(id);
         var g = graphicsOf(lane);
         if (!g) {
           lanes[id] = null;
@@ -648,11 +730,30 @@
       });
     });
 
-    // lanes without geometry: coordinates are lane-relative, stack the lanes
+    var describe = function(id, extra) {
+      var el = laneEls[id];
+      var info = {id: id, name: el ? cleanName(attr(el, 'Name')) || id : id,
+        performer: el ? text(path(el, 'Performers', 'Performer')) : '',
+        fill: el ? color(attr(path(el, 'NodeGraphicsInfos', 'NodeGraphicsInfo'), 'FillColor')) : null};
+      for (var k in extra) info[k] = extra[k];
+      return info;
+    };
+    var vertical = isVertical(ctx);
+
+    // lanes without geometry (TWE): coordinates are lane-relative, stack the lanes
+    var noGeomLanes = ownLanes.filter(function(id) { return lanes[id] === null; });
     var noGeom = items.filter(function(it) {
       return it.lane && lanes[it.lane] === null;
     });
-    if (noGeom.length) stackLanes(noGeom, laneOrderList, isVertical(ctx));
+    if (noGeom.length) {
+      var bands = stackLanes(noGeom, laneOrderList, vertical, noGeomLanes);
+      return {
+        mode: 'stacked',
+        vertical: vertical,
+        poolName: ctx.proc.pool ? cleanName(attr(ctx.proc.pool, 'Name')) : '',
+        bands: bands.map(function(b) { return describe(b.id, {start: b.start, size: b.size}); })
+      };
+    }
 
     var inAbs = 0,
       inRel = 0;
@@ -665,7 +766,8 @@
       if (within(it.x, it.y, r)) inAbs++;
       if (within(it.x + r.x, it.y + r.y, r)) inRel++;
     });
-    if (inRel > inAbs) {
+    var rel = inRel > inAbs;
+    if (rel) {
       items.forEach(function(it) {
         var r = lanes[it.lane];
         if (r) {
@@ -674,6 +776,11 @@
         }
       });
     }
+    var rectBands = ownLanes.filter(function(id) { return lanes[id]; }).map(function(id) {
+      return describe(id, {rect: lanes[id]});
+    });
+    if (!rectBands.length) return null;
+    return {mode: rel ? 'rel' : 'abs', vertical: vertical, bands: rectBands};
   }
 
   /* --------------------------- layout -------------------------------- */
@@ -887,8 +994,32 @@
     return 1;
   }
 
+  function sizeScale(nodes) {
+    var rw = [],
+      rh = [];
+    nodes.forEach(function(n) {
+      var x = n._xpdl;
+      if (!x || n.type !== 'activity' || !x.kind) return;
+      // JaWE 1.x offsets carry no size: its boxes are 90x60
+      var fw = x.w || (x.kind === 'offset' || x.kind === 'jawe' ? 90 : 0),
+        fh = x.h || (x.kind === 'offset' || x.kind === 'jawe' ? 60 : 0);
+      if (!fw || !fh) return;
+      var b = boxOf(n);
+      rw.push(b.w / fw);
+      rh.push(b.h / fh);
+    });
+    if (!rw.length) return null;
+    var med = function(a) {
+      a.sort(function(p, q) { return p - q; });
+      return a[a.length >> 1];
+    };
+    return Math.min(Math.max(med(rw), med(rh), 1), 6);
+  }
+
   // position every node, then scale/translate into the editor's space
-  function layoutGraph(ctx, nodes, edges, positioned, native) {
+  // returns the transform used: editor = file * s - left + mx (same for y), or
+  // null when the positions were generated (no file coordinates)
+  function layoutGraph(ctx, nodes, edges, positioned, native, laneInfo) {
     var withPos = nodes.filter(function(n) { return positioned[n.id]; });
     var missing = nodes.length - withPos.length;
 
@@ -904,7 +1035,7 @@
         autoLayout(nodes, edges);
         ctx.stats.autoLayout++;
       }
-      return;
+      return null;
     }
 
     // a few nodes lack positions: put them next to a connected node
@@ -930,10 +1061,12 @@
     }
 
     // this editor's own format is already in editor coordinates
-    if (native && !missing) return;
+    if (native && !missing) return {s: 1, left: 0, top: 0, mx: 0, my: 0};
 
-    // scale so the boxes don't overlap, and compact very sparse drawings
-    var s = scaleToFit(nodes);
+    // Scale from shape sizes (editor box vs the file's own Width/Height), so a
+    // file always opens at the same scale no matter how its nodes are arranged.
+    // Only files without any size information fall back to spacing-based fitting.
+    var s = sizeScale(nodes) || scaleToFit(nodes);
     // scale, then move so the top-left box edges sit 40px from the origin
     nodes.forEach(function(n) {
       n.x *= s;
@@ -946,10 +1079,65 @@
       left = Math.min(left, n.x - b.w / 2);
       top = Math.min(top, n.y - b.h / 2);
     });
+    var mx = 40,
+      my = 40;
+    if (laneInfo) {
+      // keep whole lanes in view and leave room for the lane/pool headers
+      var header = LANE_HEADER + (laneInfo.poolName ? POOL_HEADER : 0) + 16;
+      laneInfo.bands.forEach(function(b) {
+        if (b.rect) {
+          left = Math.min(left, b.rect.x * s);
+          top = Math.min(top, b.rect.y * s);
+        } else if (laneInfo.vertical) {
+          left = Math.min(left, b.start * s);
+          top = Math.min(top, 0);
+        } else {
+          top = Math.min(top, b.start * s);
+          left = Math.min(left, 0);
+        }
+      });
+      if (laneInfo.mode === 'stacked') {
+        if (laneInfo.vertical) my = 10 + header;
+        else mx = 10 + header;
+        if (laneInfo.vertical) mx = 10;
+        else my = 10;
+      } else {
+        mx = my = 10;
+      }
+    }
     nodes.forEach(function(n) {
-      n.x = Math.round(n.x - left + 40);
-      n.y = Math.round(n.y - top + 40);
+      n.x = Math.round(n.x - left + mx);
+      n.y = Math.round(n.y - top + my);
     });
+    return {s: s, left: left, top: top, mx: mx, my: my};
+  }
+
+  var LANE_HEADER = 28,
+    POOL_HEADER = 24;
+
+  // file coordinates -> editor coordinates for lane bands
+  function lanesToEditor(laneInfo, t) {
+    if (!laneInfo || !t) return null;
+    var out = {vertical: laneInfo.vertical, mode: laneInfo.mode, poolName: laneInfo.poolName || '', bands: []};
+    laneInfo.bands.forEach(function(b) {
+      var e = {id: b.id, name: b.name, fill: b.fill || null, performer: b.performer || ''};
+      if (b.rect) {
+        e.x = b.rect.x * t.s - t.left + t.mx;
+        e.y = b.rect.y * t.s - t.top + t.my;
+        e.w = b.rect.w * t.s;
+        e.h = b.rect.h * t.s;
+      } else if (laneInfo.vertical) {
+        e.x = b.start * t.s - t.left + t.mx;
+        e.w = b.size * t.s;
+        e.y = 0 * t.s - t.top + t.my; // lane body starts at the lane-relative origin
+      } else {
+        e.y = b.start * t.s - t.top + t.my;
+        e.h = b.size * t.s;
+        e.x = 0 * t.s - t.left + t.mx;
+      }
+      out.bands.push(e);
+    });
+    return out;
   }
 
   /* --------------------------- one graph ------------------------------ */
@@ -968,6 +1156,10 @@
       var r = makeActivity(ctx, act, info);
       nodes.push(r.node);
       if (r.rawId) byRaw[r.rawId] = r.node;
+      var box = !r.pos ? {w: 0, h: 0} : r.pos.rect ? {w: r.pos.rect.w, h: r.pos.rect.h} :
+        r.pos.kind === 'jawe' ? {w: 90, h: 60} : {w: 0, h: 0};
+      hide(r.node, '_xpdl', {rawId: r.rawId, kind: r.pos ? r.pos.kind : null, lane: r.pos ? r.pos.lane : null,
+        w: box.w, h: box.h, eventName: r.node.eventName || ''});
       if (r.pos) items.push({node: r.node, x: r.pos.x, y: r.pos.y, kind: r.pos.kind, lane: r.pos.lane});
 
       if (info.component === 'blockActivity') {
@@ -987,6 +1179,7 @@
           activitySetId: setId,
           graphCreator: typeof global.wrapGraphData === 'function' ? global.wrapGraphData(sub) : sub
         };
+        hide(r.node.activitySet, 'xpdl', {setRawId: info.blockId || null, layout: sub.layout || null, laneInfo: sub.laneInfo || null});
       }
     });
 
@@ -1000,6 +1193,7 @@
         });
       }
       var node = existing;
+      if (node) node._xpdl.rawMarkers.push({name: m.rawName, value: m.raw, activity: m.activity});
       if (!node) {
         node = {
           id: ctx.safeId(m.type + '_' + (ctx.counter + 1), m.type),
@@ -1009,6 +1203,8 @@
         };
         nodes.push(node);
         ctx.stats.startEnd++;
+        hide(node, '_xpdl', {marker: true, kind: m.jawe ? 'jawe' : 'offset', lane: m.lane, w: m.jawe ? 31 : 0, h: m.jawe ? 31 : 0,
+          rawMarkers: [{name: m.rawName, value: m.raw, activity: m.activity}]});
         markerNodes.push({node: node, type: m.type, mx: m.x, my: m.y, lane: m.lane});
         if (m.x !== null && m.y !== null) {
           items.push({node: node, x: m.x, y: m.y, kind: m.jawe ? 'jawe' : 'offset', lane: m.lane});
@@ -1016,13 +1212,15 @@
       }
       var act = byRaw[m.activity];
       if (act) {
-        edges.push({
+        var me = {
           edgeId: ctx.safeId('', 'tra'),
           drawLine: m.drawLine,
           postCondition: {},
           source: m.type === 'start' ? node : act,
           target: m.type === 'start' ? act : node
-        });
+        };
+        hide(me, '_xpdl', {marker: true, value: m.raw, name: m.rawName});
+        edges.push(me);
       }
     });
 
@@ -1033,9 +1231,10 @@
     var laneItems = items.filter(function(it) {
       return it.kind === 'jawe' || (it.kind === 'offset' && jaweMode);
     });
-    if (laneItems.length) resolveJaweLanes(ctx, laneItems);
+    var laneInfo = null;
+    if (laneItems.length) laneInfo = resolveJaweLanes(ctx, laneItems);
     var ngiItems = items.filter(function(it) { return it.kind === 'ngi'; });
-    if (ngiItems.length && container === ctx.proc.el) resolveNgiLanes(ctx, ngiItems);
+    if (ngiItems.length && container === ctx.proc.el) laneInfo = resolveNgiLanes(ctx, ngiItems) || laneInfo;
     items.forEach(function(it) {
       it.node.x = it.x;
       it.node.y = it.y;
@@ -1088,6 +1287,7 @@
       });
       var edge = {
         edgeId: ctx.safeId(attr(tr, 'Id'), 'tra'),
+        _rawId: attr(tr, 'Id'),
         drawLine: routing(em.RoutingType || em.JaWE_GRAPH_TRANSITION_STYLE),
         postCondition: pc,
         source: from,
@@ -1100,8 +1300,27 @@
     });
 
     var native = !jaweMode && items.length > 0 && items.every(function(it) { return it.kind === 'offset'; });
-    layoutGraph(ctx, nodes, edges, positioned, native);
-    return {nodes: nodes, edges: edges, participants: []};
+    var layout = layoutGraph(ctx, nodes, edges, positioned, native, laneInfo);
+
+    // remember where everything came from, so saving can patch the original file
+    nodes.forEach(function(n) {
+      var x = n._xpdl || {};
+      if (!n._xpdl) hide(n, '_xpdl', x);
+      x.ex = n.x;
+      x.ey = n.y;
+      x.hadPos = !!positioned[n.id];
+      x.snap = snapshotNode(n);
+    });
+    edges.forEach(function(e) {
+      var raw = e._rawId;
+      delete e._rawId;
+      if (!e._xpdl) hide(e, '_xpdl', {rawId: raw, from: e.source, to: e.target});
+      e._xpdl.snap = snapshotEdge(e);
+    });
+    var g = {nodes: nodes, edges: edges, participants: []};
+    hide(g, 'layout', layout);
+    hide(g, 'laneInfo', laneInfo);
+    return g;
   }
 
   function readParticipants(ctx) {
@@ -1145,7 +1364,17 @@
     var msgFlows = pkgInfo.pkg ? descendants(pkgInfo.pkg, 'MessageFlow').length : 0;
     if (msgFlows) ctx.warn(msgFlows + ' message flow(s) between pools are not shown (the editor shows one process at a time).');
 
+    var source = {
+      text: pkgInfo.text,
+      processId: proc.id,
+      processIndex: proc.index,
+      version: pkgInfo.version,
+      layout: graph.layout,
+      laneInfo: graph.laneInfo
+    };
     return {
+      source: source,
+      lanes: lanesToEditor(graph.laneInfo, graph.layout),
       packageId: pkgInfo.id,
       packageName: pkgInfo.name,
       version: pkgInfo.version,
@@ -1162,6 +1391,12 @@
   global.XpdlImport = {
     decode: decode,
     read: read,
-    build: build
+    build: build,
+    snapshotNode: snapshotNode,
+    snapshotEdge: snapshotEdge,
+    // shared with the saver (js/xpdlSave.js)
+    _util: {ln: ln, kids: kids, kid: kid, path: path, attr: attr, text: text, num: num, parseXml: parseXml,
+      extAttrs: extAttrs, extMap: extMap, descendants: descendants, graphicsOf: graphicsOf, color: color,
+      isLayoutExt: isLayoutExt, KNOWN_ACTIVITY_EXT: KNOWN_ACTIVITY_EXT, KNOWN_TRANSITION_EXT: KNOWN_TRANSITION_EXT}
   };
 })(window);

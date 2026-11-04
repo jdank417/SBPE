@@ -242,7 +242,12 @@ function handleViews() {
   var activitysetid = $('.full-right>.menu>.item.active').attr('activitysetid');
   switch (dataTab) {
     case 'second':
-      var xpdlContent = graph_main.emergeAllxpdlContent();
+      var xpdlContent;
+      try { // for opened files, show exactly what Save will write
+        xpdlContent = window.XpdlSave && XpdlSave.canSave(graph_main) ? XpdlSave.save(graph_main) : graph_main.emergeAllxpdlContent();
+      } catch (e) {
+        xpdlContent = graph_main.emergeAllxpdlContent();
+      }
       $('#xpdlContainer xmp').empty().text(xpdlContent);
       element.mCustomScrollbar("update");
       break;
@@ -268,6 +273,11 @@ function handleViews() {
  *  other browsers: download)
  */
 function buildPackageXpdl() {
+  if (window.XpdlSave && XpdlSave.canSave(graph_main)) {
+    var patched = XpdlSave.save(graph_main);
+    verifySavedXpdl(patched);
+    return patched;
+  }
   var xpdl = graph_main.emergeAllxpdlContent();
   var xpdl_top = /*This block should be obtainable from WfDSystemConfig.xml, but the Applet and the xml differ*/
     '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
@@ -325,7 +335,29 @@ function buildPackageXpdl() {
     (xpdl_top + xpdl + xpdl_end).replace(/^<\?xml[^>]*\?>/, ''));
 }
 
-var xpdlSaveHandle = null; // file chosen in this session's "Save as" dialog
+// read the text back and make sure it holds what the editor shows before writing anything
+function verifySavedXpdl(textOut) {
+  var src = graph_main.xpdlSource;
+  var pkg = XpdlImport.read(textOut);
+  var idx = 0;
+  pkg.processes.forEach(function(p, i) {
+    if (p.id === src.processId) idx = i;
+  });
+  var again = XpdlImport.build(pkg, idx);
+  var count = function(nodes) {
+    return nodes.filter(function(n) { return n.type === 'activity'; }).length;
+  };
+  var links = function(edges) {
+    return edges.filter(function(e) { return e.source.type === 'activity' && e.target.type === 'activity'; }).length;
+  };
+  if (count(again.nodes) !== count(graph_main.nodes) || links(again.edges) !== links(graph_main.edges)) {
+    throw new Error('Check failed: the saved file would contain ' + count(again.nodes) + ' activities / ' +
+      links(again.edges) + ' transitions, but the diagram has ' + count(graph_main.nodes) + ' / ' +
+      links(graph_main.edges) + '. Nothing was written.');
+  }
+}
+
+var xpdlSaveHandle = null; // file chosen in "Save as", or the file that was opened
 var xpdlFileName = null;   // name of the file that was opened, used as the suggested name
 
 function suggestedXpdlName() {
@@ -333,12 +365,13 @@ function suggestedXpdlName() {
   return base.replace(/[\\\/:*?"<>|]+/g, '_').trim() + '.xpdl';
 }
 
-function handleSave() {
+function handleSave(saveAs) {
+  saveAs = saveAs === true;
   var content;
   try {
     content = buildPackageXpdl();
   } catch (e) {
-    layer.alert('The diagram could not be converted to XPDL: ' + htmlEsc(e.message), {icon: 2, title: 'Save'});
+    layer.alert('The diagram could not be saved: ' + htmlEsc(e.message), {icon: 2, title: 'Save'});
     return;
   }
   var done = function(name) {
@@ -350,13 +383,17 @@ function handleSave() {
   };
 
   if (window.showSaveFilePicker) {
-    var getHandle = xpdlSaveHandle ? Promise.resolve(xpdlSaveHandle) : window.showSaveFilePicker({
+    var getHandle = xpdlSaveHandle && !saveAs ? Promise.resolve(xpdlSaveHandle) : window.showSaveFilePicker({
       suggestedName: suggestedXpdlName(),
       types: [{description: 'XPDL process', accept: {'application/xml': ['.xpdl', '.xml']}}]
     });
     getHandle.then(function(handle) {
       xpdlSaveHandle = handle;
-      return handle.createWritable().then(function(writable) {
+      var ask = handle.requestPermission ? handle.requestPermission({mode: 'readwrite'}) : Promise.resolve('granted');
+      return ask.then(function(state) {
+        if (state !== 'granted') throw new Error('Permission to write the file was not given.');
+        return handle.createWritable();
+      }).then(function(writable) {
         return writable.write(content).then(function() {
           return writable.close();
         });
@@ -743,12 +780,41 @@ function edgeAssociateNode(jsonObj) {
  * Toolbar - Open XPDL
  */
 function handleOpenXpdl() {
+  if (window.showOpenFilePicker) {
+    window.showOpenFilePicker({
+      types: [{description: 'XPDL process', accept: {'application/xml': ['.xpdl', '.xml', '.xpd']}}]
+    }).then(function(handles) {
+      return handles[0].getFile().then(function(file) {
+        openXpdlFile(file, handles[0]);
+      });
+    }).catch(function(e) {
+      if (e && e.name !== 'AbortError') {
+        layer.alert('Could not open the file: ' + htmlEsc(e.message), {icon: 2, title: 'Open XPDL'});
+      }
+    });
+    return;
+  }
   var input = document.getElementById('xpdl-file-input');
   input.value = '';
   input.click();
 }
 
-function openXpdlFile(file) {
+// a file dropped on the canvas: get a writable handle too when the browser offers one
+function openXpdlFromDrop(dataTransfer) {
+  var item = dataTransfer.items && dataTransfer.items[0];
+  var file = dataTransfer.files[0];
+  if (item && item.kind === 'file' && item.getAsFileSystemHandle) {
+    item.getAsFileSystemHandle().then(function(handle) {
+      openXpdlFile(file, handle && handle.kind === 'file' ? handle : null);
+    }, function() {
+      openXpdlFile(file);
+    });
+  } else {
+    openXpdlFile(file);
+  }
+}
+
+function openXpdlFile(file, handle) {
   if (!file) return;
   readTextFile(file, function(err, text) {
     if (err) {
@@ -765,7 +831,7 @@ function openXpdlFile(file) {
     chooseXpdlProcess(pkg, file.name, function(index) {
       confirmReplaceDiagram(function() {
         xpdlFileName = file.name;
-        xpdlSaveHandle = null;
+        xpdlSaveHandle = handle || null; // Save writes back to the opened file when we may
         loadXpdlProcess(pkg, index);
       });
     });
@@ -869,6 +935,8 @@ function loadXpdlProcess(pkg, index) {
   graph_main.nodes = result.nodes;
   graph_main.edges = result.edges;
   graph_main.participants = result.participants;
+  graph_main.xpdlSource = result.source; // lets Save patch the original file
+  graph_main.lanes = result.lanes;
   graph_main.state.selectedNode = null;
   graph_main.state.selectedEdge = null;
   graph_main.updateGraph();
@@ -958,6 +1026,12 @@ function fitGraphToView(graph) {
     maxX = Math.max(maxX, n.x + geo.w / 2 + 30);
     maxY = Math.max(maxY, n.y + geo.h / 2 + 30);
   });
+  if (graph.lanes && graph.lanes.bands) { // whole lanes, not just their contents
+    graph.lanes.bands.forEach(function(b) {
+      if (b.w) maxX = Math.max(maxX, b.x + b.w + 10);
+      if (b.h) maxY = Math.max(maxY, b.y + b.h + 10);
+    });
+  }
   var extent = graph.dragSvg.scaleExtent();
   var scale = Math.min(1, maxX ? width / maxX : 1, maxY ? height / maxY : 1);
   scale = Math.max(scale, extent[0]);
