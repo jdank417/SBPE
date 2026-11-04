@@ -2157,6 +2157,35 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     }
   };
 
+  // double-click: open the Properties dialog (activities and transitions between activities)
+  GraphCreator.prototype.openNodeProperties = function(d3node, d) {
+    var thisGraph = this,
+      state = thisGraph.state;
+    d3.event.stopPropagation();
+    $('#rMenu').hide();
+    if (d.type !== 'activity') return; // start/end have no properties
+    // the two clicks of a double-click toggle the selection off again: re-select
+    if (state.selectedEdge) thisGraph.removeSelectFromEdge();
+    if (state.selectedNode !== d) {
+      thisGraph.replaceSelectNode(d3node, d);
+      thisGraph.changePropDiv(d);
+    }
+    graphPool.updateGraphActiveById(thisGraph.containerId);
+    handleNodeMenuProp();
+  };
+
+  GraphCreator.prototype.openEdgeProperties = function(d3path, d) {
+    var thisGraph = this,
+      state = thisGraph.state;
+    d3.event.stopPropagation();
+    $('#rMenu').hide();
+    if (d.source.type == 'start' || d.target.type == 'end') return; // same rule as the right-click menu
+    if (state.selectedNode) thisGraph.removeSelectFromNode();
+    if (state.selectedEdge !== d) thisGraph.replaceSelectEdge(d3path, d);
+    graphPool.updateGraphActiveById(thisGraph.containerId);
+    handleEdgeMenuProp();
+  };
+
   GraphCreator.prototype.renderKey = function(d) {
     return d.type + '|' + d.title + '|' + (d.fillColor || '') + '|' + (d.borderColor || '') + '|' + (d.textColor || '');
   };
@@ -2778,6 +2807,9 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       })
       .on("mouseup", function(d) {
         state.mouseDownLink = null;
+      })
+      .on("dblclick", function(d) {
+        thisGraph.openEdgeProperties(d3.select(this), d);
       });
 
     // remove old links
@@ -2815,6 +2847,9 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       })
       .on("mouseup", function(d) {
         thisGraph.circleMouseUp.call(thisGraph, d3.select(this), d);
+      })
+      .on("dblclick", function(d) {
+        thisGraph.openNodeProperties(d3.select(this), d);
       })
       .call(thisGraph.drag);
 
