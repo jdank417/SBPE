@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system-config>
+	<!--Formula generation-->
+	<expressions>
+		<expression key="==">
+			<exp type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}=='${a}')]]></exp>
+			<exp type="DATETIME"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()==(${a}-0))]]></exp>
+			<exp type="DATE"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()==(${a}-0))]]></exp>
+			<exp type="Long"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}==${a})]]></exp>
+			<exp type="Float"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}==${a})]]></exp>
+			<exp type="Boolean"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}==${a})]]></exp>
+			<exp type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}==${a})]]></exp>
+			<str type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}=='${a}')]]></str>
+		</expression>
+		<expression key="!=">
+			<exp type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}!='${a}')]]></exp>
+			<exp type="DATETIME"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()!=(${a}-0))]]></exp>
+			<exp type="DATE"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()!=(${a}-0))]]></exp>
+			<exp type="Select"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}!='${a}')]]></exp>
+			<exp type="Long"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}!=${a})]]></exp>
+			<exp type="Float"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}!=${a})]]></exp>
+			<exp type="Boolean"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}!=${a})]]></exp>
+			<exp type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}!=${a})]]></exp>
+			<str type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}!='${a}')]]></str>
+		</expression>
+		<expression key="LESS">
+			<exp type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<'${a}')]]></exp>
+			<exp type="DATETIME"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()<(${a}-0))]]></exp>
+			<exp type="DATE"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()<(${a}-0))]]></exp>
+			<exp type="Select"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<'${a}')]]></exp>
+			<exp type="Long"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<${a})]]></exp>
+			<exp type="Float"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<${a})]]></exp>
+			<exp type="Boolean"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<${a})]]></exp>
+			<exp type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<${a})]]></exp>
+			<str type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<'${a}')]]></str>
+			<str type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<${a})]]></str>
+		</expression>
+		<expression key="GREATER">
+			<exp type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}>'${a}')]]></exp>
+			<exp type="date-time"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()>(${a}-0))]]></exp>
+			<exp type="DATETIME"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()>(${a}-0))]]></exp>
+			<exp type="DATE"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()>(${a}-0)))]]></exp>
+			<exp type="Select"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}>'${a}')]]></exp>
+			<exp type="Long"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}>${a})]]></exp>
+			<exp type="Float"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}>${a})]]></exp>
+			<exp type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}>${a})]]></exp>
+			<exp type="Boolean"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}>${a})]]></exp>
+			<str type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}>'${a}')]]></str>
+		</expression>
+		<expression key="LESS=">
+			<exp type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<='${a}')]]></exp>
+			<exp type="DATETIME"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()<=(${a}-0))]]></exp>
+			<exp type="DATE"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}.getTime()<=(${a}-0))]]></exp>
+			<exp type="Select"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<='${a}')]]></exp>
+			<exp type="Long"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<=${a})]]></exp>
+			<exp type="Float"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<=${a})]]></exp>
+			<exp type="Boolean"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<=${a})]]></exp>
+			<exp type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<=${a})]]></exp>
+			<str type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}<='${a}')]]></str>
+		</expression>
+		<expression key="GREATER=">
+			<exp type="String"><![CDATA[(typeof(${b})!='undefined'  && ${b}!=null && ${b}>='${a}')]]></exp>
+			<exp type="DATETIME"><![CDATA[(typeof(${b})!='undefined'  && ${b}!=null && ${b}.getTime()>=(${a}-0))]]></exp>
+			<exp type="DATE"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null  && ${b}.getTime()>=(${a}-0))]]></exp>
+			<exp type="Select"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null  && ${b}>='${a}')]]></exp>
+			<exp type="Long"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ${b}>=${a})]]></exp>
+			<exp type="Float"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null  &&  ${b}>=${a})]]></exp>
+			<exp type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null  && ${b}>=${a})]]></exp>
+			<exp type="Boolean"><![CDATA[(typeof(${b})!='undefined'  && ${b}!=null && ${b}>=${a})]]></exp>
+			<str type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null  && ${b}>='${a}')]]></str>
+		</expression>
+		<expression key="IN">
+			<exp type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.indexOf('${a}'))!=-1)]]></exp>
+			<exp type="DATETIME"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.indexOf('${a}'))!=-1)]]></exp>
+			<exp type="DATE"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.indexOf('${a}'))!=-1)]]></exp>
+			<exp type="Select"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.contains('${a}')))]]></exp>
+			<exp type="Long"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}+"").indexOf(${a}))!=-1)]]></exp>
+			<exp type="Float"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}+"").indexOf(${a}))!=-1)]]></exp>
+			<exp type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}+"").indexOf('${a}'))!=-1)]]></exp>
+			<exp type="Boolean"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}+"").indexOf('${a}'))!=-1)]]></exp>
+			<exp type="External_java.util.ArrayList"><![CDATA[(typeof(${b})!='undefined') && ${b}!=null && (${b}.contains('${a}'))]]></exp>
+			<str type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.indexOf('${a}'))!=-1)]]></str>
+		</expression>
+		<expression key="NOT">
+			<exp type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.indexOf('${a}'))==-1)]]></exp>
+			<exp type="DATETIME"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.indexOf('${a}'))==-1)]]></exp>
+			<exp type="DATE"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.indexOf('${a}'))==-1)]]></exp>
+			<exp type="Select"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}).contains('${a}')))]]></exp>
+			<exp type="Long"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}+"").indexOf('${a}'))==-1)]]></exp>
+			<exp type="Float"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}+"").indexOf('${a}'))==-1)]]></exp>
+			<exp type="Integer"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}+"").indexOf('${a}'))==-1)]]></exp>
+			<exp type="Boolean"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && ((${b}+"").indexOf('${a}'))==-1)]]></exp>
+			<exp type="External_java.util.ArrayList"><![CDATA[(typeof(${b})!='undefined')&& ${b}!=null && (!${b}.contains('${a}'))]]></exp>
+			<str type="String"><![CDATA[(typeof(${b})!='undefined' && ${b}!=null && (${b}.indexOf('${a}'))==-1)]]></str>
+		</expression>
+		<expression key="PREFIX">
+			<exp type="String"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test(${b}))]]></exp>
+			<exp type="DATETIME"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test(${b}))]]></exp>
+			<exp type="DATE"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test(${b}))]]></exp>
+			<exp type="Select"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test(${b}))]]></exp>
+			<exp type="Long"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test(${b}))]]></exp>
+			<exp type="Float"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test(${b}))]]></exp>
+			<exp type="Integer"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test(${b}))]]></exp>
+			<exp type="Boolean"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test((${b}))]]></exp>
+			<str type="String"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/^${a}/.test(${b}))]]></str>
+		</expression>
+		<expression key="SUFFIX">
+			<exp type="String"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test(${b}))]]></exp>
+			<exp type="DATETIME"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test(${b}))]]></exp>
+			<exp type="DATE"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test(${b}))]]></exp>
+			<exp type="Select"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test(${b}))]]></exp>
+			<exp type="Long"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test(${b}))]]></exp>
+			<exp type="Float"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test(${b}))]]></exp>
+			<exp type="Integer"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test(${b}))]]></exp>
+			<exp type="Boolean"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test((${b})))]]></exp>
+			<str type="String"><![CDATA[typeof(${b})!='undefined' && ${b}!=null && (/${a}$/.test(${b}))]]></str>
+		</expression>
+		<expression key="nextActivityName">
+			<exp type="nextActivityName">
+				<![CDATA[(typeof(nextActivityName)!='undefined' && nextActivityName!=null)?(nextActivityName.contains('${a}')):false]]>
+			</exp>
+		</expression>
+	</expressions>
+
+	<!-- Dropdown list-->
+	<selects>
+		<!-- When the pre-condition is AND, further configure-->
+		<select id="syncType" size="100">
+			<selectOption value=""> </selectOption>
+			<selectOption value="toupiao">Voting Mode</selectOption>
+		</select>
+		<select id="taskAssign" title="Task Delegation Rule:" size="200">
+			<selectOption value="taskAutoMode" selected="true">Automatic</selectOption>
+			<selectOption value="taskOrgConvertMode" >Department Default</selectOption>
+			<selectOption value="taskRandomMode">Random</selectOption>
+		</select>	
+		<select id="MustActivity" title="Must-end Step:" size="200">
+			<selectOption value="true" selected="true">Yes</selectOption>
+			<selectOption value="false" >No</selectOption>
+		</select>
+		<select id="isResponsibleTem" title="Temporary Monitor?:" size="200">
+			<selectOption value="true" selected="true">Yes</selectOption>
+			<selectOption value="false">No</selectOption>
+		</select>
+		<select id="isResponsible" title="Is participant a process monitor:" size="200">
+			<selectOption value="true" selected="true">Yes</selectOption>
+			<selectOption value="false">No</selectOption>
+		</select>
+		<select id="transitionEventType" title="Task Delegation Rule:" size="200">
+			<selectOption value="transitionScript">Script Type</selectOption>
+			<selectOption value="transitionClass" selected="true">Program Type</selectOption>
+		</select>	
+		<select id="role" size="70">
+			<selectOption value="history">Historical Participants</selectOption>
+			<selectOption value="responsible" selected="true">Monitor</selectOption>
+			<selectOption value="share">Shared</selectOption>
+		</select>	
+	</selects>
+
+	<!--Participant rule configuration options-->
+	<participant-option>
+		<!--Options for organization structure-->
+		<select-item key="commonly" display-name="General"	use-mode="organization">
+			<select-type key="human" name="Person" select-type="radio" select-url="forwordproxy/tree.do?type=persin" />
+			<select-type key="orgOrg" name="Department [Department]" select-type="radio" select-url="forwordproxy/tree.do?type=organise" />
+			<select-type key="orgHuman" name="Department [Person]" select-type="radio" select-url="forwordproxy/tree.do?type=organise" />
+			<select-type key="orgDefault" name="Department [Default]" select-type="radio" select-url="forwordproxy/tree.do?type=organise" />
+			<select-type key="roleHuman" name="Role [Person]" select-type="radio" select-url="forwordproxy/tree.do?type=role" />
+			<select-type key="allParty" name="Everyone [Person]" select-type="radio" select-url="" />
+		</select-item>
+		<select-item key="creator" display-name="Creator" use-mode="organization">
+			<select-type key="self" name="Creator Themself" select-url="" />
+			<select-type key="directleader" name="Creator's Leader" select-url="" />
+			<select-type key="directunderling" name="Creator's Subordinates" select-url="" />
+			<select-type key="branch" name="Creator's Department Members" select-url="" />
+			<select-type key="branchLeading" name="Creator's Department Leader" select-url="" />
+		</select-item>
+		<select-item key="processer" display-name="Current Handler" use-mode="organizationtemp">
+			<select-type key="directleader" name="Current Handler's Leader" select-url="" />
+			<select-type key="DepartUpperLeading" name="Current Handler's Department Leader" select-url="" />
+		</select-item>
+		<select-item key="sender" display-name="Sender" use-mode="organization">
+			<select-type key="self" name="Sender Themself" select-url="" />
+			<select-type key="directleader" name="Sender's Leader" select-url="" />
+			<select-type key="directunderling" name="Sender's Subordinates" select-url="" />
+			<select-type key="org" name="Sender's Department Members" select-url="" />
+			<select-type key="departUpperLeading" name="Sender's Department Leader" select-url="" />
+		</select-item>
+		<!--Options for historical step handlers-->
+		<select-item key="historyactselect" display-name="Historical Step Handler" use-mode="historyact">
+			<select-type key="historyactivity" name="Handler Themself" select-url="" />
+			<select-type key="historyleader" name="Handler's Superior" select-url="" />
+			<select-type key="historyunderling" name="Handler's Subordinates" select-url="" />
+			<select-type key="historyDepartLeader" name="Handler's Department Leader" select-url="" />	
+			<select-type key="historyDepartMember" name="Handler's Department Members" select-url="" />						
+		</select-item>
+		<select-item key="preActCreater" display-name="Previous Step Creator" use-mode="organization">
+			<select-type key="preActCreSelf" name="Previous Step Creator Themself" select-url="" />
+			<select-type key="preActCreLeader" name="Previous Step Creator's Superior" select-url="" />
+		</select-item>
+		<!--Options for business modules-->
+		<!-- 
+		<select-item key="response" display-name="Current Handler" use-mode="response">
+			<select-type key="historyactivity" name="Handler Themself" select-url="forwordproxy/tree.do?type=persin" />
+			<select-type key="historyleader" name="Handler's Superior" select-url="forwordproxy/tree.do?type=persin" />
+			<select-type key="historyunderling" name="Handler's Subordinates" select-url="forwordproxy/tree.do?type=persin" />
+		</select-item> -->
+	</participant-option>
+	
+	<!--Transition Event-->
+	<trans-event>
+		<event id="" name="" execution="" flow-type="" description="" />
+	</trans-event>
+
+	<!--System enum configuration, including process monitor roles, step participant acceptance modes, etc.-->
+	<enumerates>
+		<enumerate id="acceptmode" name="Step participant acceptance mode" flow-type="" description="">
+			<enum-item id="auto" name="Automatic" description="" />
+			<enum-item id="random" name="Random" description="" />
+			<enum-item id="total" name="All" description="" />
+		</enumerate>
+	</enumerates>
+
+	<!--BeanConditionsDef-->
+	<beanconditionsdefs>
+		<beanconditionsdef id="System_cre_id" name="Creator" module="personInfo" />
+		<beanconditionsdef id="System_Wf_Source_Party" name="Sender" module="personInfo" />
+	</beanconditionsdefs>
+
+	<Applications>
+		<Application Id="workflow_DefaultToolAgent" Name="Run other toolagent">
+			<Description>Run other toolagent</Description>
+			<FormalParameters>
+				<FormalParameter Id="ToolAgentClass" Index="0" Mode="IN" Description="Other component name">
+					<DataType>
+						<ExternalReference location="java.lang.String"/>
+					</DataType>
+				</FormalParameter>                
+			</FormalParameters>                
+			<ExtendedAttributes>
+				<ExtendedAttribute Name="ToolAgentClass" Value="" Description="Name of another toolagent to use"/>
+			</ExtendedAttributes>
+		</Application>
+		<Application Id="workflow_sendMailToolAgent" Name="Send Email">
+			<Description>Send email</Description>
+			<FormalParameters>
+				<FormalParameter Id="body" Index="body" Mode="IN" Description="Email body">
+					<DataType>
+						<BasicType Type="STRING"/>
+					</DataType>
+				</FormalParameter>
+				<FormalParameter Id="subject" Index="subject" Mode="IN" Description="Email subject">
+					<DataType>
+						<BasicType Type="STRING"/>
+					</DataType>
+				</FormalParameter>
+				<FormalParameter Id="to" Index="to" Mode="IN" Description="Email addresses, separate multiple with ,">
+					<DataType>
+						<BasicType Type="STRING"/>
+					</DataType>
+				</FormalParameter>
+			</FormalParameters>
+		</Application>
+       	<!--  
+        <Application Id="workflow_javaClassToolAgent" Name="Run Java static method">
+            <Description>Method name is execute</Description>
+            <ExtendedAttributes>
+                <ExtendedAttribute Name="ToolAgentClass" Description="Java class name to execute"/>
+            </ExtendedAttributes>
+		</Application> -->
+		<Application Id="workflow_dbToolAgent" Name="Modify data">
+			<Description>Modify database data</Description>
+			<FormalParameters>
+				<FormalParameter Id="tableName" Index="0" Mode="IN" Description="Table name">
+					<DataType>
+						<ExternalReference location="java.lang.String"/>
+					</DataType>
+				</FormalParameter>                
+				<FormalParameter Id="dbdata" Index="1" Mode="IN" Description="Data to operate on; can be a String, pojo, or Map">
+					<DataType>
+						<ExternalReference location="java.lang.Object"/>
+					</DataType>
+				</FormalParameter>
+				<FormalParameter Id="DbActionType" Index="2" Mode="IN" Description="database operation type, values: 1 insert 2 update 3 delete">
+					<DataType>
+						<BasicType Type="INTEGER"/>
+					</DataType>
+				</FormalParameter>
+				<FormalParameter Id="Condition" Index="3" Mode="IN" Description="Data operation condition; can be a pojo or Map, used as the operation condition">
+					<DataType>
+						<ExternalReference location="java.lang.Object"/>
+					</DataType>
+				</FormalParameter>
+			</FormalParameters>
+			<ExtendedAttributes>
+				<ExtendedAttribute Name="DataTableName" Value="" Description="Table name when the data being operated on is a Map"/>
+			</ExtendedAttributes>
+			<ExtendedAttributes>
+				<ExtendedAttribute Name="DbActionType" Value="" Description="Database operation type; ignored if the same setting exists in the formal parameters"/>
+			</ExtendedAttributes>                
+		</Application>
+		<Application Id="workflow_fetchDataAgent" Name="Fetch Data">
+			<Description>Fetch database data</Description>
+			<FormalParameters>
+				<FormalParameter Id="Condition" Index="1" Mode="IN" Description="Data operation condition; can be a pojo or Map, used as the operation condition">
+					<DataType>
+						<ExternalReference location="java.lang.Object"/>
+					</DataType>
+				</FormalParameter>
+			</FormalParameters>
+			<ExtendedAttributes>
+				<ExtendedAttribute Name="DataTableName" Value="" Description="Table name when the data being operated on is a Map"/>
+			</ExtendedAttributes>
+		</Application>            
+	</Applications>
+	<!--Process and step time limits-->
+	<limit>
+		<!--attributes: id limit id, name limit name, agent-class agent class, flow-type process type, description limit description-->
+	  	<!--   
+	  	<agent id="warnTest" name="Warning test" agentClass="workflow.testWarn" flowType="" description="" />
+	  	<agent id="limitTest" name="Timeout test" agentClass="workflow.testLimit" flowType="" description="" /> -->
+	  	<agent id="mailLeader" name="Email Notify Participants' Leaders" agentClass="workflow.mailPartyLeader" flowType="" description="" />
+	  	<agent id="mailParty" name="Email Notify Participants" agentClass="workflow.mailParty" flowType="" description="" />
+	</limit>
+	
+</system-config>

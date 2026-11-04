@@ -1,0 +1,2162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>flowChart</title>
+	<link type="text/css" href="semantic-ui-2.2.13/dist/semantic.min.css" rel="stylesheet" />
+	<link type="text/css" href="css/graph-creator.css" rel="stylesheet" />
+	<link type="text/css" href="css/jquery.mCustomScrollbar.css" rel="stylesheet" />
+	<link type="text/css" href="ztree/css/metroStyle/metroStyle.css" rel="stylesheet" />
+	<link type="text/css" href="laypage/skin/laypage.css" rel="stylesheet" />
+	<link type="text/css" href="css/flowchart.css" rel="stylesheet" />
+</head>
+<body>
+	<div class="subheader editor-toolbar">
+		<div class="column pop-btn" data-content="Save" data-position="bottom center" data-variation="mini"><i class="save icon"></i></div>
+		<div class="divider"></div>
+		<div class="column pop-btn" data-content="Cut" data-position="bottom center" data-variation="mini"><i class="cut icon"></i></div>
+		<div class="column pop-btn" data-content="Copy" data-position="bottom center" data-variation="mini"><i class="copy icon"></i></div>
+		<div class="column pop-btn" id="test-loadXML" data-content="Paste" data-position="bottom center" data-variation="mini"><i class="paste icon"></i></div>
+		<div class="column pop-btn" id="delete-graph" data-content="Clear" data-position="bottom center" data-variation="mini"><i class="trash icon"></i></div>
+		<div class="column pop-btn" id="delete-ele" data-content="Delete" data-position="bottom center" data-variation="mini"><i class="remove icon"></i></div>
+		<div class="divider"></div>
+		<div class="column pop-btn" data-content="Undo" data-position="bottom center" data-variation="mini"><i class="repeat icon"></i></div>
+		<div class="column pop-btn" data-content="Redo" data-position="bottom center" data-variation="mini"><i class="undo icon"></i></div>
+		<div class="divider"></div>
+		<div class="column pop-btn" id="zoom-enlarge" data-content="Zoom In" data-position="bottom center" data-variation="mini"><i class="zoom icon"></i></div>
+		<div class="column pop-btn" id="zoom-narrow" data-content="Zoom Out" data-position="bottom center" data-variation="mini"><i class="zoom out icon"></i></div>
+		<div class="column pop-btn" id="reset-zoom" data-content="Reset Position" data-position="bottom center" data-variation="mini"><i class="maximize icon"></i></div>
+		<div class="divider"></div>
+		<div class="column pop-btn" data-content="Import json" data-position="bottom center" data-variation="mini"><i class="sign in icon"></i></div>
+		<div class="column pop-btn small popup" data-content="Export json" data-position="bottom center" data-variation="mini"><i class="sign out icon"></i></div>
+		<div class="divider"></div>
+		<div class="column pop-btn" id="helper" data-content="Drag an activity from the left panel into the editor" data-position="bottom center" data-variation="mini"><i class="help circle outline icon"></i></div>
+	</div>
+	<div class="full clearfix">
+		<div id="flowComponents" class="full-left">
+			<div class="components-btn noComponent clearfix" name="selectBtn">
+				<div><i class="tools select-icon"></i><span>Select</span></div>
+			</div>
+			<div class="components-btn noComponent" name="addStartEndBtn" draggable="false">
+				<div><i class="tools addStartEnd-icon"></i><span>Auto Insert</span></div>
+			</div>
+			<div class="components-btn" name="startComponent" type="start" draggable="true" data-show="S">
+				<div><i class="tools start-icon"></i><span>Start</span></div>
+			</div>
+			<div class="components-btn clearfix" name="endComponent" type="end" draggable="true" data-show="E">
+				<div><i class="tools end-icon"></i><span>End</span></div>
+			</div>
+			<div class="components-btn clearfix" name="ordinaryActivity" type="activity" draggable="true" data-show="Normal Activity">
+				<div><i class="tools ordinary-icon"></i><span>Normal Activity</span></div>
+			</div>
+			<div class="components-btn clearfix" name="blockActivity" type="activity" draggable="true" data-show="Block Activity">
+				<div><i class="tools block-icon"></i><span>Block Activity</span></div>
+			</div>
+			<div class="components-btn clearfix" name="subFlowActivity" type="activity" draggable="true" data-show="Sub-Activity">
+				<div><i class="tools subFlow-icon"></i><span>Sub-Activity</span></div>
+			</div>
+			<div class="components-btn clearfix" name="routeActivity" type="activity" draggable="true" data-show="Route Activity">
+				<div><i class="tools route-icon"></i><span>Route Activity</span></div>
+			</div>
+			<div class="components-btn noComponent clearfix" name="NOROUTING">
+				<div><i class="tools line-icon"></i><span>Transition</span></div>
+			</div>
+			<div class="components-btn noComponent clearfix" name="SIMPLEROUTING">
+				<div><i class="tools polyline-icon"></i><span>Self Transition</span></div>
+			</div>
+			<div class="components-btn noComponent clearfix" name="000ROUTING">
+				<div><i class="tools loop-icon"></i><span>Loop</span></div>
+			</div>
+		</div>
+		<div class="full-right tab clearfix">
+			<div class="ui top attached tabular mini menu">
+			  	<a class="item active" data-tab="tab_main">
+			  		<i class="remove red icon"></i>Process
+			  	</a>
+			</div>
+			<div class="ui bottom attached tab active" data-tab="tab_main">
+			  	<form id="containerForm" method="post" action="">
+					<div id="container" class="ui top attached tab active full-right-top view svg-container" data-tab="first">
+						<!-- svg -->
+					</div>
+					<div id="xpdlContainer" class="ui top attached tab view content-div" data-tab="second">
+						<xmp>
+							<!-- xpdl -->
+						</xmp>
+					</div>
+					<div id="xmlContainer" class="ui top attached tab view content-div" data-tab="third">
+						<xmp>
+							<!-- xml -->
+						</xmp>
+					</div>
+					<div class="full-right-btn ui bottom attached tabular mini menu">
+						<a class="item active" data-tab="first">Chart View</a>
+						<a class="item" data-tab="second">XPDL View</a>
+						<a class="item" data-tab="third">XML View</a>
+					</div>
+					<div id="propertiesWrapper" class="full-right-bottom">
+						<div class="component-name"><i class="angle double down icon"></i><span></span></div>
+						<div class="component-prop content-div">
+							<!-- activity Properties -->
+						</div>
+					</div>
+
+					<input name="xpdlcontent" type="hidden" value="">
+					<input name="xmlcontent" type="hidden" value="">
+
+					<input type="hidden" id="wFID" name="wFID" value="">
+					<input type="hidden" id="wFType" name="wFType" value="money">
+					<input type="hidden" id="subType" name="subType" value="">
+					<input type="hidden" id="depart" name="depart" value="">
+					<input type="hidden" id="departID" name="departID" value="">
+					<input type="hidden" id="formName" name="formName" value="">
+					<input type="hidden" id="formId" name="formId" value="">
+					<input type="hidden" id="formType" name="formType" value="wfd_form">
+					<input type="hidden" id="mode" name="mode" value="">
+					<input type="hidden" id="dt" name="dt" onFocus="WdatePicker({dateFmt:'dd HH:mm',skin:'blue'});" value="">
+					<input type="hidden" id="dataObjectID" name="dataObjectID" value="">
+					<input type="hidden" id="securityID" name="securityID" value="">
+					<input type="hidden" id="securityName" name="securityName" value="">
+					<input type="hidden" id="orderNo" name="orderNo" value="">
+				</form>
+			</div>
+		</div>
+	</div>
+	<!-- Import/export popup -->
+	<div class="ui segment small modal json_data">
+	  	<i class="close icon"></i>
+	  	<div class="header">
+	   		Import Data
+	  	</div>
+	  	<div class="content">
+	    	<textarea></textarea>
+	  	</div>
+	  	<div class="actions">
+	      	<div class="ui negative button">No </div>
+	      	<div class="ui positive right labeled icon button">Yes <i class="checkmark icon"></i> </div>
+	    </div>
+	</div>
+	<!-- Right-click menu -->
+	<div id="rMenu" class="ui vertical mini menu">
+		<a class="item" name="removeMenu">Delete<i class="remove icon"></i></a>
+		<a class="item" name="propMenu">Properties<i class="book icon"></i></a>
+		<a class="item" name="editMenu">Edit<i class="edit icon"></i></a>
+		<a class="item" name="toFront">Bring to Front<i class="object ungroup icon"></i></a>
+	</div>
+	<!-- Properties popup start -->
+	<div class="ui coupled modal prop_node">
+		<i class="close cancel icon"></i>
+	  	<div class="ui pointing secondary menu">
+		  <a class="item active" data-tab="one">General</a>
+		  <a class="item" data-tab="two_1">Tools</a>
+		  <a class="item hideitem" data-tab="two_2">Block Activity</a>
+		  <a class="item hideitem" data-tab="two_3">Sub-workflow</a>
+		  <a class="item" data-tab="three">Pre-conditions</a>
+		  <a class="item" data-tab="four">Post-conditions</a>
+		  <a class="item" data-tab="five">Ext. Attributes</a>
+		  <a class="item" data-tab="six">Timeouts</a>
+		  <a class="item" data-tab="seven">Advanced</a>
+		  <a class="item" data-tab="eight">Monitoring</a>
+		</div>
+		<!-- General item start -->
+		<div class="ui tab segment active" data-tab="one">
+			<div class="ui mini form conventional">
+				<div class="fields">
+				    <div class="five wide field">
+				      <label>ID:</label>
+				      <input name="ID" type="text" placeholder="ID">
+				    </div>
+				    <div class="five wide field">
+				      <label>Name:</label>
+				      <input name="name" type="text" placeholder="Name">
+				    </div>
+				    <div class="five wide field">
+					    <label>Type:</label>
+					    <input name="type" type="text" placeholder="Type" readonly>
+					</div>
+				</div>
+				<div class="ui divider hidden"></div>
+				<div class="field">
+    				<label>Participant Set:</label>
+					<div class="two fields">
+						<div class="five wide field definition_field">
+                		  	<select class="ui search dropdown" name="definition_role">
+      							<option value="">Please select</option>
+      							<option value="0">(Empty)</option>
+							</select>      					
+                		</div>
+                		<div class="five wide field">
+							<button class="ui facebook mini button definitionBtn"><i class="write icon"></i>Define</button>
+                		</div>
+                	</div>
+                </div>
+                <div class="fields">
+                	<div class="inline field">
+    				  	<div class="ui checkbox isTracking">
+    				  	  	<input type="checkbox" tabindex="0" class="hidden">
+    				  	  	<label>Track Entire Process?</label>
+    				  	  	<input type="hidden" name="isResponsible" value="">
+    				  	</div>
+    				</div>
+    				<div class="inline field">
+    				  	<div class="ui checkbox isReceiveTask">
+    				  	  	<input type="checkbox" tabindex="0" class="hidden">
+    				  	  	<label>Auto-accept Task Delegation?</label>
+    				  	  	<input type="hidden" name="autoAcceptAllAssignments" value="">
+    				  	</div>
+    				</div>
+				</div>
+				<div class="ui divider hidden"></div>
+				<div class="fields">
+					<div class="five wide field">
+					    <label>Start Mode:</label>
+					    <select name="startMode" class="ui search dropdown">
+					    	<option value="">Start Mode</option>
+					      	<option value="manual">Manual</option>
+					      	<option value="automatic">Automatic</option>
+					    </select>
+					</div>
+					<div class="five wide field">
+					    <label>Completion Mode:</label>
+					    <select name="finishMode" class="ui search dropdown">
+					    	<option value="">Completion Mode</option>
+					      	<option value="manual">Manual</option>
+					      	<option value="automatic">Automatic</option>
+					    </select>
+					</div>
+				    <div class="five wide field">
+				      	<label>Priority:</label>
+				      	<input name="priority" type="text" placeholder="Name">
+				    </div>
+				</div>
+				<div class="fields">
+                	<div class="inline field">
+    				  	<div class="ui checkbox completeAllAssignmentsDiv">
+    				  	  	<input type="checkbox" tabindex="0" class="hidden">
+    				  	  	<label>Multi-person Handling?</label>
+    				  	  	<input type="hidden" name="completeAllAssignments" value="">
+    				  	</div>
+    				</div>
+    				<div class="inline field">
+    				  	<div class="ui checkbox assignmentsOrderDiv">
+    				  	  	<input type="checkbox" tabindex="0" class="hidden">
+    				  	  	<label>Sequential Handling?</label>
+    				  	  	<input type="hidden" name="assignmentsOrder" value="">
+    				  	</div>
+    				</div>
+    				<div class="inline field">
+    				  	<div class="ui checkbox">
+    				  	  	<input type="checkbox" tabindex="0" class="hidden">
+    				  	  	<label>Create step instance per participant</label>
+    				  	  	<input type="hidden" name="isMulInstance" value="">
+    				  	</div>
+    				</div>
+				</div>
+				<div class="field">
+    			  	<label>Description:</label>
+    			  	<textarea name="description" rows="2"></textarea>
+    			</div>
+    			<div class="fields">
+					<div class="five wide field taskAssign">
+					    <label>Task Delegation Rule:</label>
+					    
+					</div>
+					<div class="five wide field MustActivity">
+					    <label>Must-end Step:</label>
+					    <!-- select_tpl -->
+					</div>
+				</div>
+			</div>
+		</div><!-- General item end -->
+		<!-- Activity properties - Tools item start -->
+		<div class="ui tab segment" data-tab="two_1">
+			<div class="ui mini form grid toolgrid">
+			  	<div class="computer only row">
+			  		<div class="twelve wide tablet computer column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+							<thead>
+								<tr>
+									<th class="one wide">Select</th>
+									<th class="two wide">Application</th>
+									<th class="two wide">Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>
+										<div class="ui radio checkbox">
+											<input type="radio" name="s" tabindex="0" class="hidden">
+										</div>
+									</td>
+									<td>1111111</td>
+									<td>Aell</td>
+								</tr>
+								<tr>
+									<td>
+										<div class="ui radio checkbox">
+											<input type="radio" name="s" tabindex="0" class="hidden">
+										</div>
+									</td>
+									<td>2222222</td>
+									<td>Bell</td>
+								</tr>
+								<tr>
+									<td>
+										<div class="ui radio checkbox">
+											<input type="radio" name="s" tabindex="0" class="hidden">
+										</div>
+									</td>
+									<td>3333333</td>
+									<td>Cell</td>
+								</tr>
+							</tbody>
+						</table>
+			  		</div>
+			    	<div class="three wide column">
+			    		<div class="ui vertical">
+					    	<button class="ui positive basic mini button toolAddBtn"><i class="icon plus"></i> Add</button>
+							<button class="ui primary basic mini button showDialog"><i class="icon write"></i> Edit</button>
+							<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+					  	</div>
+			    	</div>
+			  	</div>
+			  	<div class="toolgrid-empty"></div><!--IE11 compatibility-->
+			</div>
+		</div><!-- Activity properties - Tools item end -->
+		<!-- Activity properties - Block Activity item start -->
+		<div class="ui tab segment" data-tab="two_2">
+			<div class="ui mini form">
+				<div class="five wide field">
+				  	<label>Block ID:</label>
+				  	<input type="text" placeholder="Block ID">
+				</div>
+			</div>
+		</div><!-- Activity properties - Block Activity item end -->
+		<!-- Activity properties - Sub-Activity item start -->
+		<div class="ui tab segment" data-tab="two_3">
+			<div class="ui mini form">
+				<div class="fields">
+					<div class="five wide field">
+					    <label>Workflow Process:</label>
+					    <select class="ui search dropdown">
+					      	<option value="">Select</option>
+					      	<option value="1">Process</option>
+					    </select>
+					</div>
+					<div class="five wide field">
+					    <label>Execution:</label>
+					    <select class="ui search dropdown">
+					      	<option value="">Select</option>
+					      	<option value="0">(Empty)</option>
+					      	<option value="1">Synchronous</option>
+					      	<option value="2">Asynchronous</option>
+					    </select>
+					</div>
+				</div>
+				<div class="ui divider hidden"></div>
+				<div class="ui grid toolgrid">
+				  	<div class="computer only row">
+				  		<div class="twelve wide tablet computer column">
+				  			<table class="ui blue sortable selectable celled striped compact table">
+								<thead>
+									<tr>
+										<th class="one wide">Select</th>
+										<th class="two wide">Application</th>
+										<th class="two wide">Type</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>
+											<div class="ui radio checkbox">
+												<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+											</div>
+										</td>
+										<td>1111111</td>
+										<td>Aell</td>
+									</tr>
+									<tr>
+										<td>
+											<div class="ui radio checkbox">
+												<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+											</div>
+										</td>
+										<td>2222222</td>
+										<td>Bell</td>
+									</tr>
+									<tr>
+										<td>
+											<div class="ui radio checkbox">
+												<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+											</div>
+										</td>
+										<td>3333333</td>
+										<td>Cell</td>
+									</tr>
+								</tbody>
+							</table>
+				  		</div>
+				    	<div class="three wide column">
+				    		<div class="ui vertical">
+						    	<button class="ui positive basic mini button"><i class="icon plus"></i> Add</button>
+								<button class="ui primary basic mini button"><i class="icon write"></i> Edit</button>
+								<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+						  	</div>
+				    	</div>
+				  	</div>
+				</div>
+			</div>
+		</div><!-- Activity properties - Sub-Activity item end -->
+		<!-- Pre-conditions start -->
+		<div class="ui tab segment" data-tab="three">
+			<div class="ui mini form front_condition">
+				<div class="five wide field">
+				    <label>Join Type:</label>
+				    <select name="convergeType" class="ui search dropdown convergeType">
+				      	<option value="">Select</option>
+				      	<option value="0">(Empty)</option>
+				      	<option value="AND">And</option>
+				      	<option value="XOR">Xor</option>
+				    </select>
+				</div>
+				<div class="otherOpt">
+					<div class="hideDiv">
+						<div class="fourteen wide two fields">
+							<div class="four wide field syncType">
+		                	  	<!-- select_tpl -->
+		                	</div>
+		                	<div class="five wide field">
+							    <input type="text" name="voteText" placeholder="">
+							</div>
+						</div>
+					</div>
+					<div class="hideDiv">
+						<div class="inline fields">
+			              	<label for="isCreateNew_radio">Multiple Entry:</label>
+			              	<div class="field">
+			              	  	<div class="ui radio checkbox">
+			              	  	  	<input type="radio" name="isCreateNew_radio" tabindex="true" class="hidden">
+			              	  	  	<label>Yes</label>
+			              	  	</div>
+			              	</div>
+			              	<div class="field">
+			              	  	<div class="ui radio checkbox">
+			              	  	  	<input type="radio" name="isCreateNew_radio" tabindex="false" class="hidden">
+			              	  	  	<label>No</label>
+			              	  	</div>
+			              	</div>
+			              	<input type="hidden" name="isCreateNew" value="">
+			            </div>
+		            </div>
+					
+				</div>
+			</div>
+			<div class="frontCond-empty"></div>
+		</div><!-- Pre-conditions end -->
+		<!-- Post-conditions start -->
+		<div class="ui tab segment" data-tab="four">
+			<div class="ui mini form post_condition">
+				<div class="inline five wide field">
+				    <label>Split Type:</label>
+				    <select name="splitType" class="ui search dropdown">
+				      	<option value="">Select</option>
+				      	<option value="AND">And</option>
+				      	<option value="XOR">Xor</option>
+				    </select>
+				</div>
+				<div class="ui horizontal divider">Select target activity</div>
+				<div class="targetActivityShow content-div">
+					<div class="ui middle aligned list">
+						
+					</div>
+				</div>
+				<div class="targetActivity invisible">
+					
+				</div>
+				
+			</div>
+		</div><!-- Post-conditions end -->
+		<!-- Extended Attribute Set start -->
+		<div class="ui tab segment" data-tab="five">
+			<div class="ui mini form grid extended_attr">
+			  	<div class="computer only row">
+			  		<div class="twelve wide tablet computer column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+							<thead>
+								<tr>
+									<th class="one wide">Select</th>
+									<th class="two wide">Name</th>
+									<th class="two wide">Value</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							</tbody>
+						</table>
+			  		</div>
+			    	<div class="three wide column">
+			    		<div class="ui vertical">
+					    	<button class="ui positive basic mini button extendAttrAddBtn"><i class="icon plus"></i> Add</button>
+							<button class="ui primary basic mini button extendAttrEditBtn"><i class="icon write"></i> Edit</button>
+							<button class="ui negative basic mini button extendAttrDelBtn"><i class="icon remove"></i> Delete</button>
+					  	</div>
+			    	</div>
+			  	</div>
+			</div>
+			<div class="extAttr-empty"></div>
+		</div><!-- Extended Attribute Set end -->
+		<!-- Timeout Limits start-->
+		<div class="ui tab segment" data-tab="six">
+			<div class="ui mini form timeout_limit">
+				<div class="five wide field">
+				    <label>Time Limit:</label>
+				    <input type="text" name="limitTime" placeholder="Time Limit">
+				</div>
+				<div class="five wide field">
+    				<label>Agent to run at time limit:</label>
+                	<select name="limitAgentClassName" class="ui search dropdown">
+      					<option value="">Please select</option>
+      					<option value="">(Empty)</option>
+      					<option value="workflow.sendNext">Auto Submit</option>
+      					<option value="workflow.mailParty">Email Notify Participants</option>
+      					<option value="workflow.mailPartyLeader">Email Notify Participants' Leaders</option>
+					</select>      					
+                </div>
+                <div class="five wide field">
+				    <label>Warning Time:</label>
+				    <input type="text" name="warnTime" placeholder="Warning Time">
+				</div>
+				<div class="five wide field">
+    				<label>Agent to run at warning time:</label>
+                	<select name="warnAgentClassName" class="ui search dropdown">
+      					<option value="">Please select</option>
+      					<option value="">(Empty)</option>
+      					<option value="workflow.sendNext">Auto Submit</option>
+      					<option value="workflow.mailParty">Email Notify Participants</option>
+      					<option value="workflow.mailPartyLeader">Email Notify Participants' Leaders</option>
+					</select>      					
+                </div>
+                <div class="ui horizontal divider">Deadline Set</div>
+                <div class="ui grid timeout_limit_grid">
+				  	<div class="computer only row">
+				  		<div class="twelve wide tablet computer column content-div">
+				  			<table class="ui blue sortable selectable celled striped compact table">
+								<thead>
+									<tr>
+										<th>Duration</th>
+									</tr>
+								</thead>
+								<tbody>
+									
+								</tbody>
+							</table>
+				  		</div>
+				    	<div class="three wide column">
+				    		<div class="ui vertical">
+						    	<button class="ui positive basic mini button timeoutLimitAddBtn"><i class="icon plus"></i> Add</button>
+								<button class="ui primary basic mini button timeoutLimitEditBtn"><i class="icon write"></i> Edit</button>
+								<button class="ui negative basic mini button timeoutLimitRemoveBtn"><i class="icon remove"></i> Remove</button>
+						  	</div>
+				    	</div>
+				  	</div>
+				</div>
+			</div>
+		</div><!-- Timeout Limits end-->
+		<!-- Advanced start-->
+		<div class="ui tab segment" data-tab="seven">
+			<div class="ui mini form highLevel">
+				<div class="five wide field">
+				    <label>End Rule:</label>
+				    <input type="text" name="finishRule" placeholder="End Rule">
+				</div>
+				<div class="five wide field">
+				    <label>Creation Event:</label>
+				    <input type="text" name="activityCreateEvent" placeholder="Creation Event">
+				</div>
+				<div class="five wide field">
+				    <label>End Event:</label>
+				    <input type="text" name="activityEndEvent" placeholder="End Event">
+				</div>
+			</div>
+			<div class="highLevel-empty"></div>
+		</div><!-- Advanced end-->
+		<!-- Monitoring Info start -->
+		<div class="ui tab segment" data-tab="eight">
+			<div class="ui mini form monitorinf">
+				<div class="five wide field isResponsibleTem">
+    				<label>Temporary Monitor?:</label>
+                	<!-- select_tpl -->  					
+                </div>
+                <div class="ui grid monitorinf_grid">
+				  	<div class="computer only row">
+				  		<div class="twelve wide tablet computer column content-div">
+				  			<table class="ui blue sortable selectable celled striped compact table">
+				  				<thead>
+				  					<tr>
+				  						<th>Monitor</th>
+				  					</tr>
+				  				</thead>
+								<tbody>
+									
+								</tbody>
+							</table>
+				  		</div>
+				    	<div class="three wide column">
+				    		<div class="ui vertical">
+						    	<button class="ui positive basic mini button monitorinfAddBtn"><i class="icon plus"></i> Add</button>
+								<button class="ui primary basic mini button monitorinfEditBtn"><i class="icon write"></i> Edit</button>
+								<button class="ui negative basic mini button monitorinfRemoveBtn"><i class="icon remove"></i> Delete</button>
+						  	</div>
+				    	</div>
+				  	</div>
+				</div>
+			</div>
+		</div><!-- Monitoring Info end -->
+	  	<div class="actions inverted clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>
+	</div><!-- Properties popup end -->
+
+	<!-- Activity properties - General - Define -->
+	<div class="ui coupled small modal tab conventional_definition def_common">
+  	  	
+  	</div>
+
+  	<!-- Activity properties - Tools - Add -->
+	<div class="ui coupled small modal tab segment tool_add">
+  	  	<div class="ui mini form">
+  	  		<div class="fields">
+  	  			<div class="five wide field">
+	               	<label>Type:</label>
+	                <select class="ui search dropdown">
+		      			<option value="">Please select</option>
+		      			<option value="1">Application</option>
+		      			<option value="2">Program</option>
+					</select>      					
+	            </div>
+	            <div class="ten wide field">
+	    			<label>Application:</label>
+					<div class="two fields">
+						<div class="field">
+	               		  	<select class="ui search dropdown">
+	      						<option value="">Please select</option>
+	      						<option value="1">Modify data</option>
+	      						<option value="2">Send Email</option>
+	      						<option value="3">Run other toolagent</option>
+	      						<option value="4">Fetch Data</option>
+							</select>      					
+	               		</div>
+	               		<div class="five wide field">
+							<button class="ui facebook mini button definitionBtn"><i class="write icon"></i>Define</button>
+	               		</div>
+	               	</div>
+	            </div>
+  	  		</div>
+            <div class="ui horizontal divider">Actual Parameter Set</div>
+            <div class="ui grid">
+    		  	<div class="row">
+			  		<div class="ten wide tablet column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+							<thead>
+								<tr>
+									<th class="one wide">Select</th>
+									<th class="two wide">Application</th>
+									<th class="two wide">Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr id="tr1">
+									<td>
+										<div class="ui radio checkbox">
+											<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+										</div>
+									</td>
+									<td>1111111</td>
+									<td>Aell</td>
+								</tr>
+							</tbody>
+						</table>
+			  		</div>
+			    	<div class="three wide column">
+			    		<div class="ui vertical">
+					    	<button class="ui positive basic mini button actualParametersAdd1"><i class="icon plus"></i> Add</button>
+							<button class="ui primary basic mini button"><i class="icon write"></i> Edit</button>
+							<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+					  	</div>
+			    	</div>
+			  	</div>
+    		</div>
+            <div class="ui divider hidden"></div>
+			<div class="field">
+    		  	<label>Description:</label>
+    		  	<textarea rows="2"></textarea>
+    		</div>
+			<div class="ui horizontal divider">Extended Attribute Set</div>
+			<div class="ui grid">
+    		  	<div class="row">
+			  		<div class="ten wide tablet computer column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+							<thead>
+								<tr>
+									<th class="one wide">Select</th>
+									<th class="two wide">Application</th>
+									<th class="two wide">Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr id="tr1">
+									<td>
+										<div class="ui radio checkbox">
+											<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+										</div>
+									</td>
+									<td>1111111</td>
+									<td>Aell</td>
+								</tr>
+							</tbody>
+						</table>
+			  		</div>
+			    	<div class="three wide column">
+			    		<div class="ui vertical">
+					    	<button class="ui positive basic mini button actualParametersAdd2"><i class="icon plus"></i> Add</button>
+							<button class="ui primary basic mini button"><i class="icon write"></i> Edit</button>
+							<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+					  	</div>
+			    	</div>
+			  	</div>
+    		</div>
+			<div class="ui divider hidden"></div>
+    		<div class="actions inverted segment clearfix">
+				<button class="ui right floated green inverted ok button">
+					<i class="checkmark icon"></i>OK
+				</button>
+				<button class="ui right floated red inverted cancel button">
+					<i class="remove icon"></i>Cancel
+				</button>
+			</div>		
+		</div>
+  	</div>
+  	<!-- Tools - Add - Add -->
+	<div class="ui coupled small modal tab segment actualParametersDiv">
+  	  	<div class="ui mini form">
+  	  		<div class="field">
+    			<label>Actual Parameter:</label>
+				<div class="two fields">
+					<div class="five wide field">
+            	   		<select class="ui search dropdown">
+      						<option value="">Please select</option>
+      						<option value="1">sourceReferenceld</option>
+      						<option value="2">formId</option>
+      						<option value="2">nextActivityInfo</option>
+      						<option value="2">nextActivityName</option>
+      						<option value="2">formType</option>
+						</select>      					
+            	   	</div>
+            	   	<div class="five wide field">
+						<button class="ui facebook mini button definitionBtn"><i class="write icon"></i>Define</button>
+            	   	</div>
+            	</div>
+            </div>
+  	  	</div>
+    	<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>		
+  	</div>
+  	<!-- Tools - Add - Add - Define -->
+	<div class="ui coupled small modal tab segment toolAddDefinition">
+  		<div class="header">Workflow Relevant Data Set</div>
+  		<div class="ui mini form grid">
+		  	<div class="computer only row">
+		  		<div class="twelve wide tablet computer column">
+		  			<table class="ui blue sortable selectable celled striped compact table">
+						<thead>
+							<tr>
+								<th class="one wide">Select</th>
+								<th class="two wide">ID</th>
+								<th class="two wide">Name</th>
+								<th class="two wide">Data Type</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="tr1">
+								<td>
+									<div class="ui radio checkbox">
+										<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+									</div>
+								</td>
+								<td>1111111</td>
+								<td>Aell</td>
+								<td>Aell</td>
+							</tr>
+							<tr>
+								<td>
+									<div class="ui radio checkbox">
+										<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+									</div>
+								</td>
+								<td>3333333</td>
+								<td>Cell</td>
+								<td>Cell</td>
+							</tr>
+						</tbody>
+					</table>
+		  		</div>
+		    	<div class="three wide column">
+		    		<div class="ui vertical">
+				    	<button class="ui positive basic mini button toolAddDefinitionAddBtn"><i class="icon plus"></i> Add</button>
+						<button class="ui primary basic mini button"><i class="icon write"></i> Edit</button>
+						<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+				  	</div>
+		    	</div>
+		  	</div>
+		</div>
+		<div class="ui divider hidden"></div>
+    	<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>		
+	</div>
+	<!-- Tools - Add - Add - Define - Add -->
+	<div class="ui coupled large modal tab segment toolAddDefinitionAdd">
+		<i class="close icon"></i>
+		<div class="ui mini form">
+  	  		<div class="fields">
+  	  			<div class="five wide field">
+				  	<label>ID:</label>
+				  	<input type="text" placeholder="ID">
+				</div>
+	            <div class="five wide field">
+				  	<label>Name:</label>
+				  	<input type="text" placeholder="Name">
+				</div>
+				 <div class="five wide field">
+				  	<label>Initial Value:</label>
+				  	<input type="text" placeholder="Initial Value">
+				</div>
+				 <div class="five wide field">
+				  	<label>Length:</label>
+				  	<input type="text" placeholder="Length">
+				</div>
+  	  		</div>
+  	  		<div class="five wide inline field">
+	            <label>Is Array:</label>
+	            <select class="ui search dropdown">
+		      		<option value="">Please select</option>
+		      		<option value="0">(Empty)</option>
+		      		<option value="1">Yes</option>
+		      		<option value="2">No</option>
+				</select>      					
+	        </div>
+            <div class="ui horizontal divider">Type</div>
+            <div class="five wide inline field">
+	            <label>Type:</label>
+	            <select class="ui search dropdown">
+		      		<option value="">Please select</option>
+		     		<option value="1">Declared type</option>
+		     		<option value="2">Enumeration type</option>
+		     		<option value="3">List type</option>
+		     		<option value="4">Record type</option>
+		     		<option value="5">Schema type</option>
+		     		<option value="6">Union type</option>
+		     		<option value="7">Basic Type</option>
+		     		<option value="8">External Reference</option>
+		     		<option value="9">Array Type</option>
+				</select>      					
+	        </div>
+
+    		<div class="field">
+    		  	<label>Description:</label>
+    		  	<textarea rows="1"></textarea>
+    		</div>
+			<div class="ui horizontal divider">Extended Attribute Set</div>
+			<div class="ui grid">
+    		  	<div class="row">
+			  		<div class="ten wide tablet computer column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+							<thead>
+								<tr>
+									<th class="one wide">Select</th>
+									<th class="two wide">Application</th>
+									<th class="two wide">Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr id="tr1">
+									<td>
+										<div class="ui radio checkbox">
+											<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+										</div>
+									</td>
+									<td>1111111</td>
+									<td>Aell</td>
+								</tr>
+							</tbody>
+						</table>
+			  		</div>
+			    	<div class="three wide column">
+			    		<div class="ui vertical">
+					    	<button class="ui positive basic mini button"><i class="icon plus"></i> Add</button>
+							<button class="ui primary basic mini button showDialog"><i class="icon write"></i> Edit</button>
+							<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+					  	</div>
+			    	</div>
+			  	</div>
+    		</div>
+
+			<div class="ui divider hidden"></div>
+    		<div class="actions inverted segment clearfix">
+				<button class="ui right floated green inverted ok button">
+					<i class="checkmark icon"></i>OK
+				</button>
+				<button class="ui right floated red inverted cancel button">
+					<i class="remove icon"></i>Cancel
+				</button>
+			</div>		
+		</div>
+	</div>
+
+  	<!-- Tools - Add - Define -->
+  	<div class="ui coupled small modal tab segment tooldefinition">
+  		<div class="header">Application Set - Define</div>
+  		<div class="ui horizontal divider"></div>
+  		<div class="ui mini form grid">
+		  	<div class="computer only row">
+		  		<div class="twelve wide tablet computer column">
+		  			<table class="ui blue sortable selectable celled striped compact table">
+						<thead>
+							<tr>
+								<th class="one wide">Select</th>
+								<th class="two wide">ID</th>
+								<th class="two wide">Name</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="tr1">
+								<td>
+									<div class="ui radio checkbox">
+										<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+									</div>
+								</td>
+								<td>1111111</td>
+								<td>Aell</td>
+							</tr>
+							<tr>
+								<td>
+									<div class="ui radio checkbox">
+										<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+									</div>
+								</td>
+								<td>2222222</td>
+								<td>Bell</td>
+							</tr>
+							<tr>
+								<td>
+									<div class="ui radio checkbox">
+										<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+									</div>
+								</td>
+								<td>3333333</td>
+								<td>Cell</td>
+							</tr>
+						</tbody>
+					</table>
+		  		</div>
+		    	<div class="three wide column">
+		    		<div class="ui vertical">
+				    	<button class="ui positive basic mini button tooldefinitionAddBtn"><i class="icon plus"></i> Add</button>
+						<button class="ui primary basic mini button"><i class="icon write"></i> Edit</button>
+						<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+				  	</div>
+		    	</div>
+		  	</div>
+		</div>
+		<div class="ui horizontal divider"></div>
+    	<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>		
+	</div>
+	<!-- Tools - Add - Define - Add -->
+	<div class="ui coupled large modal tab segment tooldefinition_add">
+		<div class="ui mini form">
+  	  		<div class="fields">
+  	  			<div class="five wide field">
+				  	<label>ID:</label>
+				  	<input type="text" placeholder="ID">
+				</div>
+	            <div class="five wide field">
+				  	<label>Name:</label>
+				  	<input type="text" placeholder="Name">
+				</div>
+  	  		</div>
+  	  		<div class="field">
+    		  	<label>Description:</label>
+    		  	<textarea rows="1"></textarea>
+    		</div>
+            <div class="ui horizontal divider">Select</div>
+            <div class="five wide inline field">
+	            <label>Type:</label>
+	            <select class="ui search dropdown">
+		      		<option value="">Please select</option>
+		      		<option value="1">External Reference</option>
+		      		<option value="2">Formal Parameter Set</option>
+				</select>      					
+	        </div>
+            <div class="ui grid">
+    		  	<div class="row">
+			  		<div class="ten wide tablet column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+							<thead>
+								<tr>
+									<th class="one wide">ID</th>
+									<th class="two wide">Index</th>
+									<th class="two wide">Mode</th>
+									<th class="two wide">Data Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr id="tr1">
+									<td>1111111</td>
+									<td>2222222</td>
+									<td>3333333</td>
+									<td>4444444</td>
+								</tr>
+							</tbody>
+						</table>
+			  		</div>
+			    	<div class="three wide column">
+			    		<div class="ui vertical">
+					    	<button class="ui positive basic mini button tooldefinitionAddAddBtn"><i class="icon plus"></i> Add</button>
+							<button class="ui primary basic mini button showDialog"><i class="icon write"></i> Edit</button>
+							<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+					  	</div>
+			    	</div>
+			  	</div>
+    		</div>
+            <div class="ui divider hidden"></div>
+			<div class="ui horizontal divider">Extended Attribute Set</div>
+			<div class="ui grid">
+    		  	<div class="row">
+			  		<div class="ten wide tablet computer column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+							<thead>
+								<tr>
+									<th class="one wide">Select</th>
+									<th class="two wide">Application</th>
+									<th class="two wide">Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr id="tr1">
+									<td>
+										<div class="ui radio checkbox">
+											<input type="radio" name="selectAnswer" tabindex="0" class="hidden">
+										</div>
+									</td>
+									<td>1111111</td>
+									<td>Aell</td>
+								</tr>
+							</tbody>
+						</table>
+			  		</div>
+			    	<div class="three wide column">
+			    		<div class="ui vertical">
+					    	<button class="ui positive basic mini button"><i class="icon plus"></i> Add</button>
+							<button class="ui primary basic mini button showDialog"><i class="icon write"></i> Edit</button>
+							<button class="ui negative basic mini button"><i class="icon remove"></i> Delete</button>
+					  	</div>
+			    	</div>
+			  	</div>
+    		</div>
+			<div class="ui divider hidden"></div>
+    		<div class="actions inverted segment clearfix">
+				<button class="ui right floated green inverted ok button">
+					<i class="checkmark icon"></i>OK
+				</button>
+				<button class="ui right floated red inverted cancel button">
+					<i class="remove icon"></i>Cancel
+				</button>
+			</div>		
+		</div>
+	</div>
+	<!-- Tools - Add - Define - Add - Add -->
+	<div class="ui coupled small modal tab segment tooldefinition_add_add">
+		<div class="ui mini form">
+			<div class="five wide field">
+		      	<label>ID:</label>
+		      	<input type="text" placeholder="ID">
+		    </div>
+		    <div class="five wide field">
+		      	<label>Index:</label>
+		      	<input type="text" placeholder="Index">
+		    </div>
+		    <div class="five wide field">
+	            <label>Mode:</label>
+	            <select class="ui search dropdown">
+		     		<option value="">Please select</option>
+		     		<option value="1">In</option>
+		     		<option value="2">In and Out</option>
+		     		<option value="3">Out</option>
+				</select>      					
+	        </div>
+	        <div class="ui horizontal divider">Type</div>
+	        <div class="five wide field">
+	            <label>Type:</label>
+	            <select class="ui search dropdown">
+		     		<option value="">Please select</option>
+		     		<option value="1">Declared type</option>
+		     		<option value="2">Enumeration type</option>
+		     		<option value="3">List type</option>
+		     		<option value="4">Record type</option>
+		     		<option value="5">Schema type</option>
+		     		<option value="6">Union type</option>
+		     		<option value="7">Basic Type</option>
+		     		<option value="8">External Reference</option>
+		     		<option value="9">Array Type</option>
+				</select>      					
+	        </div>
+		</div>
+		<div class="ui divider hidden"></div>
+    	<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>		
+	</div>
+  	<!-- Tools - Add - Add Extended Attribute -->
+	<div class="ui coupled small modal tab segment tool_extendAttr_add">
+  	  	<div class="ui mini form">
+  	  		<div class="fields">
+  	  			<div class="five wide field">
+			      	<label>Name:</label>
+			      	<input name="extendAttr_add_name" type="text" placeholder="Name">
+			    </div>
+			    <div class="five wide field">
+			      	<label>Value:</label>
+			      	<input name="extendAttr_add_value" type="text" placeholder="Value">
+			    </div>
+  	  		</div>
+			<div class="ui divider hidden"></div>
+    		<div class="actions inverted segment clearfix">
+				<button class="ui right floated green inverted ok button">
+					<i class="checkmark icon"></i>OK
+				</button>
+				<button class="ui right floated red inverted cancel button">
+					<i class="remove icon"></i>Cancel
+				</button>
+			</div>
+			<input type="hidden" name="extendAttr_add_operate" value="">		
+		</div>
+  	</div>
+  	<!-- Post-conditions - Extended Attributes - Add -->
+	<div class="ui coupled small modal tab segment postCondition_extendAttr_add">
+  	  	<div class="ui mini form">
+  	  		<div class="fields">
+  	  			<div class="five wide field">
+			      	<label>Name:</label>
+			      	<input name="extendAttr_add_name" type="text" placeholder="Name">
+			    </div>
+			    <div class="five wide field">
+			      	<label>Value:</label>
+			      	<input name="extendAttr_add_value" type="text" placeholder="Value">
+			    </div>
+  	  		</div>
+			<div class="ui divider hidden"></div>
+    		<div class="actions inverted segment clearfix">
+				<button class="ui right floated green inverted ok button">
+					<i class="checkmark icon"></i>OK
+				</button>
+				<button class="ui right floated red inverted cancel button">
+					<i class="remove icon"></i>Cancel
+				</button>
+			</div>
+			<input type="hidden" name="extendAttr_add_operate" value="">		
+		</div>
+  	</div>
+  	<!-- Post-conditions - Condition Settings - Relation Settings -->
+  	<div class="ui coupled small modal tab segment relationshipPlacement">
+  		<i class="close icon"></i>
+  		<div class="header">Relation Settings</div>
+  		<div class="ui mini form">
+  			<div class="ui horizontal divider">Select condition code</div>
+  	  		<div class="fields condition_no">
+               	
+			</div>
+			<div class="ui horizontal divider">Select relation</div>
+			<div class="fields">
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="relationship" tabindex="&&" class="hidden" value="">
+						<label>AND</label>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="relationship" tabindex="||" class="hidden" value="">
+						<label>OR</label>
+					</div>
+				</div>
+			</div>
+			<div class="ui horizontal divider">Settings</div>
+			<div class="two inline fields">
+				<div class="five wide field">
+					<button class="ui primary mini button relationshipGroup">
+						<i class="cubes icon"></i>Group
+					</button>
+					<button class="ui mini button relationshipReset">
+						<i class="reply all icon"></i>Reset
+					</button>
+				</div>
+				<div class="seven wide field delivery">
+					<label>Preview:</label>
+					<input name="beanConditions_type" type="text" placeholder="" readonly value="">
+				</div>
+			</div>
+										
+			<div class="ui divider hidden"></div>
+    		<div class="actions inverted segment clearfix">
+				<button class="ui right floated green inverted ok button">
+					<i class="checkmark icon"></i>OK
+				</button>
+				<button class="ui right floated red inverted cancel button">
+					<i class="remove icon"></i>Cancel
+				</button>
+			</div>
+		</div>
+  	</div>
+  	<!-- Activity properties - Extended Attributes - Add -->
+	<div class="ui coupled small modal tab segment extendAttr_add">
+  	  	<div class="ui mini form">
+  	  		<div class="fields">
+  	  			<div class="five wide field">
+			      	<label>Name:</label>
+			      	<input name="extendAttr_add_name" type="text" placeholder="Name">
+			    </div>
+			    <div class="five wide field">
+			      	<label>Value:</label>
+			      	<input name="extendAttr_add_value" type="text" placeholder="Value">
+			    </div>
+  	  		</div>
+			<div class="ui divider hidden"></div>
+    		<div class="actions inverted segment clearfix">
+				<button class="ui right floated green inverted ok button">
+					<i class="checkmark icon"></i>OK
+				</button>
+				<button class="ui right floated red inverted cancel button">
+					<i class="remove icon"></i>Cancel
+				</button>
+			</div>
+			<input type="hidden" name="extendAttr_add_operate" value="">		
+		</div>
+  	</div>
+  	<!-- Timeout Limits - Add -->
+	<div class="ui coupled small modal tab segment timeoutLimit_add">
+  	  	<div class="ui mini form">
+  	  		<div class="five wide field">
+	            <label>Execution:</label>
+	            <select name="execution" class="ui search dropdown">
+		     		<option value="">Please select</option>
+		     		<option value="">(Empty)</option>
+		     		<option value="SYNCHR">Synchronous</option>
+		     		<option value="ASYNCHR">Asynchronous</option>
+				</select>      					
+	        </div>
+  	  		<div class="five wide field">
+		      	<label>Duration:</label>
+		      	<input type="text" name="deadlineCondition" placeholder="Duration">
+		    </div>
+		    <div class="five wide field">
+		      	<label>Exception Name:</label>
+		      	<input type="text" name="exceptionName" placeholder="Exception Name">
+		    </div>
+		    <input type="hidden" name="timeoutLimit_add_operate" value="">
+  	  	</div>
+		<div class="ui divider hidden"></div>
+    	<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>		
+  	</div>
+  	<!-- Monitoring Info - Add -->
+	<div class="ui coupled small modal tab segment monitorinf_add" parentsModal="prop_node">
+  	  	<div class="ui mini form">
+  	  		<div class="field">
+    			<label>Participant Set:</label>
+				<div class="two fields">
+					<div class="seven wide field">
+            	   		<select name="definition_role" class="ui search disabled dropdown">
+      						
+						</select>   
+						<input type="hidden" name="monitorinf_add_operate" value="">				
+            	   	</div>
+            	   	<div class="five wide field">
+						<button class="ui facebook mini button definitionBtn"><i class="write icon"></i>Define</button>
+            	   	</div>
+            	</div>
+            </div>
+  	  	</div>
+    	<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>		
+  	</div>
+  	<!-- Monitoring Info - Add - Define -->
+  	<div class="ui coupled small modal tab monitorinfAddDefinition def_common">
+  	  	<div class="ui pointing secondary menu">
+		  	<a class="item active" data-tab="definition_one">General</a>
+		  	<a class="item" data-tab="definition_two">Advanced</a>
+		</div>
+		<div class="ui tab segment active" data-tab="definition_one">
+			<div class="ui mini form">
+			    <div class="five wide field">
+			      	<label>ID:</label>
+			      	<input type="text" name="conventional_definition_id" placeholder="ID">
+			    </div>
+			    <div class="five wide field">
+			      	<label>Name:</label>
+			      	<input type="text" name="conventional_definition_name" placeholder="Name">
+			    </div>
+				<div class="field">
+    			  	<label>Description:</label>
+    			  	<textarea name="conventional_definition_description" rows="2"></textarea>
+    			</div>
+			    <div class="five wide field">
+				    <label>Custom Participant:</label>
+				    <input type="text" name="conventional_definition_participant" placeholder="Custom Participant">
+				</div>
+				<div class="five wide field role">
+		    		<label>Custom Role:</label>
+		            <!-- select_tpl -->  					
+		        </div> 
+		        <input type="hidden" class="hidden" name="monitorinf_add_operate" value="">
+			</div>
+		</div>
+		<div class="ui tab segment" data-tab="definition_two">
+			<div class="ui top attached tabular mini menu">
+	    	  	<a class="active item" data-tab="definition_two/a" value="commonly|General">General</a>
+	    	  	<a class="item" data-tab="definition_two/b" value="processer|Current Handler">Current Handler</a>
+	    	  	<a class="item" data-tab="definition_two/c" value="sender|Sender">Sender</a>
+	    	  	<a class="item" data-tab="definition_two/d" value="preActCreater|Previous Step Creator">Previous Step Creator</a>
+	    	</div>
+	    	<div class="ui bottom attached active tab segment" data-tab="definition_two/a">
+				<div class="ui mini form">
+					<div class="fields">
+						<div class="five wide field">
+		    				<label>Type:</label>
+		                	<select name="definition_type" class="ui search dropdown">
+		      					<option value="">Please select</option>
+		      					<option value="human|Person">Person</option>
+		      					<option value="orgOrg|Department [Department]">Department [Department]</option>
+		      					<option value="orgHuman|Department [Person]">Department [Person]</option>
+		      					<option value="orgDefault|Department [Default]">Department [Default]</option>
+		      					<option value="orgLeader|Department [Leader]">Department [Leader]</option>
+		      					<option value="roleHuman|Role [Person]">Role [Person]</option>
+		      					<option value="roleRole|Role [Role]">Role [Role]</option>
+		      					<option value="allParty|Everyone [Person]">Everyone [Person]</option>
+							</select>      					
+		                </div>
+		                <div class="eight wide field">
+					      	<label>Name:</label>
+					      	<input type="text" name="def_name_show" placeholder="Name" readonly>
+					      	<input type="hidden" name="definition_name" placeholder="Name" value="|">
+					    </div>
+					    <div class="five wide field">
+				    		<label>Role:</label>
+				            <select name="definition_role" class="ui search dropdown">
+				      			<option value="">Please select</option>
+		      					<option value="history">Historical Participants</option>
+		      					<option value="responsible">Monitor</option>
+		      					<option value="share">Shared</option>
+							</select>      					
+				        </div>
+					    <div class="five wide field">
+					      	<label>Additional Parameters 1:</label>
+					      	<input type="text" name="definition_param1" placeholder="Additional Parameters">
+					    </div>
+					    <div class="five wide field">
+					    	<label>Additional Parameters 2:</label>
+						    <input type="text" name="definition_param2" placeholder="Additional Parameters">
+						</div>	
+		            </div>
+				</div>
+	    	</div>
+	    	<div class="ui bottom attached tab segment" data-tab="definition_two/b">
+	    		<div class="ui mini form">
+					<div class="fields">
+						<div class="five wide field">
+		    				<label>Type:</label>
+		                	<select name="definition_type" class="ui search dropdown">
+		      					<option value="">Please select</option>
+		      					<option value="directleader|Current Handler's Leader">Current Handler's Leader</option>
+		      					<option value="DepartUpperLeading|Current Handler's Department Leader">Current Handler's Department Leader</option>
+							</select>      					
+		                </div>
+		                <div class="five wide field">
+				    		<label>Role:</label>
+				            <select name="definition_role" class="ui search dropdown">
+				      			<option value="">Please select</option>
+		      					<option value="history">Historical Participants</option>
+		      					<option value="responsible">Monitor</option>
+		      					<option value="share">Shared</option>
+							</select>      					
+				        </div>
+					    <div class="five wide field">
+					      	<label>Additional Parameters 1:</label>
+					      	<input type="text" name="definition_param1" placeholder="Additional Parameters">
+					    </div>
+					    <div class="five wide field">
+					    	<label>Additional Parameters 2:</label>
+						    <input type="text" name="definition_param2" placeholder="Additional Parameters">
+						</div>	
+		            </div>
+				</div>
+	    	</div>
+	    	<div class="ui bottom attached tab segment" data-tab="definition_two/c">
+	    		<div class="ui mini form">
+					<div class="fields">
+						<div class="five wide field">
+		    				<label>Category:</label>
+		                	<select name="definition_type" class="ui search dropdown">
+		                	<option value="">Please select</option>
+		      					<option value="self|Sender Themself">Sender Themself</option>
+		      					<option value="directleader|Sender's Leader">Sender's Leader</option>
+		      					<option value="directundering|Sender's Subordinates">Sender's Subordinates</option>
+		      					<option value="org|Sender's Department Members">Sender's Department Members</option>
+		      					<option value="departUpperLeading|Sender's Department Leader">Sender's Department Leader</option>
+							</select>      					
+		                </div>
+		                <div class="five wide field">
+				    		<label>Role:</label>
+				            <select name="definition_role" class="ui search dropdown">
+				      			<option value="">Please select</option>
+		      					<option value="history">Historical Participants</option>
+		      					<option value="responsible">Monitor</option>
+		      					<option value="share">Shared</option>
+							</select>      					
+				        </div>
+					    <div class="five wide field">
+					      	<label>Additional Parameters 1:</label>
+					      	<input type="text" name="definition_param1" placeholder="Additional Parameters">
+					    </div>
+					    <div class="five wide field">
+					    	<label>Additional Parameters 2:</label>
+						    <input type="text" name="definition_param2" placeholder="Additional Parameters">
+						</div>	
+		            </div>
+				</div>
+	    	</div>
+	    	<div class="ui bottom attached tab segment" data-tab="definition_two/d">
+	    		<div class="ui mini form">
+					<div class="fields">
+						<div class="five wide field">
+		    				<label>Category:</label>
+		                	<select name="definition_type" class="ui search dropdown">
+		      					<option value="">Please select</option>
+		      					<option value="preActCreSelf|Previous Step Creator Themself">Previous Step Creator Themself</option>
+		      					<option value="preActCreLeader|Previous Step Creator's Superior">Previous Step Creator's Superior</option>
+							</select>      					
+		                </div>
+		                <div class="five wide field">
+				    		<label>Role:</label>
+				            <select name="definition_role" class="ui search dropdown">
+				      			<option value="">Please select</option>
+		      					<option value="history">Historical Participants</option>
+		      					<option value="responsible">Monitor</option>
+		      					<option value="share">Shared</option>
+							</select>      					
+				        </div>
+					    <div class="five wide field">
+					      	<label>Additional Parameters 1:</label>
+					      	<input type="text" name="definition_param1" placeholder="Additional Parameters">
+					    </div>
+					    <div class="five wide field">
+					    	<label>Additional Parameters 2:</label>
+						    <input type="text" name="definition_param2" placeholder="Additional Parameters">
+						</div>	
+		            </div>
+				</div>
+	    	</div>
+	    	<button class="ui positive basic mini button monitorinfDefintionAddBtn"><i class="icon plus"></i> Add Condition</button>
+			<button class="ui negative basic mini button monitorinfDefintionRemoveBtn"><i class="icon remove"></i> Delete Condition</button>
+			<div class="ui divider hidden"></div>
+	        <div class="ui grid definition_condition content-div">
+			  	<div class="computer only row">
+			  		<div class="tablet computer column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+			  				<thead>
+								<tr>
+									<th class="four wide">Category</th>
+									<th class="four wide">Type</th>
+									<th class="three wide">Name</th>
+									<th class="three wide">Parameter 1</th>
+									<th class="three wide">Parameter 2</th>
+									<th class="three wide">Role</th>
+								</tr>
+							</thead>
+							<tbody>
+
+							</tbody>
+						</table>
+			  		</div>
+			  	</div>
+			</div>
+		</div>
+		<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>
+  	</div>
+
+  	<!-- Link properties popup -->
+	<div class="ui coupled modal tab segment prop_edge">
+		<div class="header">Transition Properties</div>
+  	  	<div class="ui mini form">
+  	  		<div class="targetActivity">
+				
+			</div>
+  	  	</div>
+		<div class="ui divider hidden"></div>
+    	<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>		
+  	</div>
+  	<!-- Select role popup -->
+  	<div class="ui coupled modal tab role_manage">
+	    <i class="close icon"></i>
+	    <div id="role-top" class="topfont addborder popup">
+			<i class="add user icon"></i>Role Management
+		</div>
+		<div id="role-center">
+			<form id="searchForm">
+				<div>
+					<div class="ui icon mini input role-search">
+		              	<label>Role Name:</label>
+					  	<input type="text" name="roleName" placeholder="Search...">
+					  	<i class="search link icon"></i>
+					</div>
+					<button type="button" class="ui google plus mini button resetBtn">
+					  	<i class="reply all plus icon"></i>
+					  	Reset
+					</button>
+					<button type="button" class="ui facebook mini button okBtn">
+					  	<i class="checkmark icon"></i>
+					  	OK
+					</button>
+				</div>
+			</form>
+			<input type="hidden" name="offset" id="offset" />
+			<input type="hidden" name="size" id="size" />
+			<div class="content-tab">
+				
+			</div>
+		</div>
+		<div id="pageDiv"></div>
+	</div>
+
+	<script type="text/javascript" src="js/jquery.js" charset="utf-8"></script>
+	<script type="text/javascript" src="js/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="js/d3.v3.js" charset="utf-8"></script>
+	<script type="text/javascript" src="js/juicer-min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="layer/layer.js" charset="utf-8"></script>
+	<script type="text/javascript" src="semantic-ui-2.2.13/dist/semantic.js" charset="utf-8"></script>
+	<script type="text/javascript" src="ztree/js/jquery.ztree.all.js"></script>
+	<script type="text/javascript" src="js/jquery-form.min.js"></script>
+	<script type="text/javascript" src="js/jquery.mCustomScrollbar.concat.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="js/vkbeautify.js" charset="utf-8"></script>
+	<script type="text/javascript" src="js/base64.js" charset="utf-8"></script>
+	<script type="text/javascript" src="laypage/laypage.js"></script>
+	
+	<script>
+		juicer.set({  
+			'tag::operationOpen': '{@',  
+			'tag::operationClose': '}',  
+			'tag::interpolateOpen': '{{=',  
+			'tag::interpolateClose': '}}'  
+		});
+		// register in-template helper via `juicer.register`
+		juicer.register('juicer_stringify', function(jsonObj) {
+		    return JSON.stringify(jsonObj);
+		});
+	</script>
+
+	<script id="tpl" type="text/template"><!-- activities can be generated from templates, unused for now -->
+	    <activity Id="{{=activity.id}}" Name="{{=activity.title}}" form-id="" formdisplayschema="" hisformdisplayschema="">
+	        <operations/>
+	        <text-limit/>
+	    </activity>
+	</script>
+
+	<!-- blockActivity Edit tab tpl -->
+	<script id="blockActiEdi_item_tpl" type="text/template">
+		<a class="item" data-tab="tab_{{=id}}" activitysetid="{{=activitySetId}}">
+			<i class="remove red icon"></i>Block Activity
+		</a>
+	</script>
+	<script id="blockActiEdi_tab_tpl" type="text/template">
+		<div class="ui bottom attached tab segment blockDiv" data-tab="tab_{{=id}}">
+		  	<div class="ui top attached tab active full-right-top view svg-container" data-tab="{{=id}}_first">
+				<!-- svg -->
+			</div>
+			<div class="ui top attached tab view content-div" data-tab="{{=id}}_second">
+				<xmp>
+					<!-- xpdl -->
+				</xmp>
+			</div>
+			<div class="full-right-btn ui bottom attached tabular mini menu">
+				<a class="item active" data-tab="{{=id}}_first">Chart View</a>
+				<a class="item" data-tab="{{=id}}_second">xpdl View</a>
+			</div>
+			<div class="full-right-bottom">
+				<div class="component-name"><i class="angle double down icon"></i><span></span></div>
+				<div class="component-prop content-div">
+					<!-- activity Properties -->
+				</div>
+			</div>
+		</div>
+	</script>
+
+	<!-- Extended Attribute Set tpl -->
+	<script id="extended_attr_tpl" type="text/template">
+		<tr jsonstr="{{=jsonstr}}">
+			<td>
+				<div class="ui radio checkbox">
+					<input type="radio" name="selectItem" tabindex="0" class="hidden">
+				</div>
+			</td>
+			<td>{{=data.name}}</td>
+			<td>{{=data.value}}</td>
+		</tr>
+	</script>
+	<!-- Role Management tpl -->
+	<script id="role_manage_tpl" type="text/template">
+		<div class="row">
+			<div class="column">
+				<table class="ui blue sortable selectable celled striped compact table">
+					<thead>
+						<tr>
+							<th class="one wide">Select</th>
+							<th class="one wide">Role Name</th>
+							<th class="three wide">Organization</th>
+							<th class="three wide">Description</th>
+						</tr>
+					</thead>
+					<tbody>
+					{@each list as it,index}
+						<tr jsonstr="{{=it|juicer_stringify}}">
+							<td>
+								<div class="ui radio checkbox">
+									<input type="radio" name="selectItem" tabindex="0" class="hidden">
+								</div>
+							</td>
+							<td>{{=it.ROLENAME}}</td>
+							<td>{{=it.ROLEID}}</td>
+							<td>{{=it.DESCRIPTION}}</td>
+						</tr>
+			        {@/each}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</script>
+	<!-- select tpl -->
+	<script id="select_tpl" type="text/template">
+		<select name="{{=selectId}}" class="ui dropdown">
+		    <option value="">Please select...</option>
+			{@each options as option,index}
+				<option value="{{=option.value}}">{{=option.show}}</option>
+			{@/each}
+		</select>
+	</script>
+	<!-- Define Participant tpl -->
+	<script id="participant_tpl" type="text/templ">
+		<div class="ui pointing secondary menu">
+		  	<a class="item active" data-tab="definition_1">General</a>
+		  	<a class="item" data-tab="definition_2">Advanced</a>
+		</div>
+		<div class="ui tab segment active" data-tab="definition_1">
+			<div class="ui mini form">
+			    <div class="five wide field">
+			      	<label>ID:</label>
+			      	<input name="conventional_definition_id" type="text" placeholder="ID">
+			    </div>
+			    <div class="five wide field">
+			      	<label>Name:</label>
+			      	<input name="conventional_definition_name" type="text" placeholder="Name">
+			    </div>
+				<div class="field">
+    			  	<label>Description:</label>
+    			  	<textarea name="conventional_definition_description" rows="2"></textarea>
+    			</div>
+			    <div class="five wide field">
+				    <label>Custom Participant:</label>
+				    <input name="conventional_definition_participant" type="text" placeholder="Custom Participant">
+				</div>
+				<input type="hidden" class="hidden" name="conventional_def_operate" value="">
+			</div>
+		</div>
+		<div class="ui tab segment" data-tab="definition_2">
+			<div class="ui top attached tabular mini menu">
+				{@each selectItems as item}
+					{@if item.key == 'commonly'}
+						<a class="active item" data-tab="definition_2/{{=item.key}}" value="{{=item.key}}|{{=item.displayName}}">{{=item.displayName}}</a>
+					{@else}
+						<a class="item" data-tab="definition_2/{{=item.key}}" value="{{=item.key}}|{{=item.displayName}}">{{=item.displayName}}</a>
+					{@/if}
+				{@/each}
+	    	</div>
+			{@each selectItems as item}
+				{@if item.key == 'commonly'}
+					<div class="ui bottom attached active tab segment" data-tab="definition_2/{{=item.key}}">
+				{@else}
+					<div class="ui bottom attached tab segment" data-tab="definition_2/{{=item.key}}">
+				{@/if}
+					<div class="ui mini form">
+						<div class="fields">
+							<div class="five wide field">
+			    				<label>Type:</label>
+			                	<select name="definition_type" class="ui search dropdown">
+			      					<option value="">Please select</option>
+			      					{@each item.selectTypes as selectType}
+										<option value="{{=selectType.key}}|{{=selectType.name}}">{{=selectType.name}}</option>
+			      					{@/each}
+								</select>      					
+			                </div>
+			                {@if item.key == 'commonly'}
+				                <div class="five wide field">
+							      	<label>Name:</label>
+							      	<input type="text" name="def_name_show" placeholder="Name" readonly>
+							      	<input type="hidden" name="definition_name" placeholder="Name" value="|">
+							    </div>
+							{@else if item.key == 'historyactselect'}
+								<div class="five wide field definition_name">
+				    				<label>Name:</label>
+									<!-- select_tpl -->
+				      			</div>
+							{@/if}
+						    <div class="five wide field">
+						      	<label>Additional Parameters 1:</label>
+						      	<input type="text" name="definition_param1" placeholder="Additional Parameters">
+						    </div>
+						    <div class="five wide field">
+						    	<label>Additional Parameters 2:</label>
+							    <input type="text" name="definition_param2" placeholder="Additional Parameters">
+							</div>	
+			            </div>
+					</div>
+		    	</div>
+			{@/each}
+			<button class="ui positive basic mini button definition_addBtn"><i class="icon plus"></i> Add Condition</button>
+			<button class="ui negative basic mini button definition_removeBtn"><i class="icon remove"></i> Delete Condition</button>
+			<div class="ui divider hidden"></div>
+	        <div class="ui grid definition_condition content-div">
+			  	<div class="computer only row">
+			  		<div class="tablet computer column">
+			  			<table class="ui blue sortable selectable celled striped compact table">
+			  				<thead>
+								<tr>
+									<th class="four wide">Category</th>
+									<th class="four wide">Type</th>
+									<th class="three wide">Name</th>
+									<th class="three wide">Parameter 1</th>
+									<th class="three wide">Parameter 2</th>
+									<th class="three wide">Condition</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							</tbody>
+						</table>
+			  		</div>
+			  	</div>
+			</div>
+		</div>
+		<div class="actions inverted segment clearfix">
+			<button class="ui right floated green inverted ok button">
+				<i class="checkmark icon"></i>OK
+			</button>
+			<button class="ui right floated red inverted cancel button">
+				<i class="remove icon"></i>Cancel
+			</button>
+		</div>
+	</script>
+	<!-- Transition Properties tpl -->
+	<script id="transition_tpl" type="text/template">
+		<div class="ui top attached tabular mini menu">
+    	  	<a class="active item" data-tab="four/a">Transition Info</a>
+    	  	<a class="item" data-tab="four/b">Condition Settings</a>
+    	  	<a class="item" data-tab="four/c">Events</a>
+    	</div>
+    	<div class="ui bottom attached active tab segment" data-tab="four/a">
+			<div class="ui mini form">
+				<div class="fields">
+				    <div class="five wide field">
+				      <label>ID:</label>
+				      <input type="text" name="edgeId" placeholder="ID">
+				    </div>
+				    <div class="four wide field">
+				      <label>Name:</label>
+				      <input type="text" name="edgeName" placeholder="Name">
+				    </div>
+				    <div class="four wide field">
+					    <label>From:</label>
+					    <input type="text" name="sourceTitle" placeholder="From" disabled="disabled">
+					</div>
+					<div class="four wide field">
+					    <label>To:</label>
+					    <input type="text" name="targetTitle" placeholder="To" disabled="disabled">
+					</div>
+				</div>
+				<div class="field">
+    			  	<label>Description:</label>
+    			  	<textarea name="description" rows="2"></textarea>
+    			</div>
+				<div class="ui horizontal divider">Extended Attribute Set</div>
+    			<div class="ui mini form grid transferInf_extended_attr">
+				  	<div class="computer only row">
+				  		<div class="twelve wide tablet computer column postCondi_extendedAttr">
+				  			<table class="ui blue sortable selectable celled striped compact table">
+								<thead>
+									<tr>
+										<th class="one wide">Select</th>
+										<th class="two wide">Name</th>
+										<th class="two wide">Value</th>
+									</tr>
+								</thead>
+								<tbody>
+									
+								</tbody>
+							</table>
+				  		</div>
+				    	<div class="three wide column">
+				    		<div class="ui vertical">
+						    	<button class="ui positive basic mini button extendAttrAddBtn"><i class="icon plus"></i> Add</button>
+								<button class="ui primary basic mini button extendAttrEditBtn"><i class="icon write"></i> Edit</button>
+								<button class="ui negative basic mini button extendAttrDelBtn"><i class="icon remove"></i> Delete</button>
+						  	</div>
+				    	</div>
+				  	</div>
+				</div>
+    			
+			</div>
+    	</div>
+    	<div class="ui bottom attached tab segment" data-tab="four/b">
+    		<div class="ui mini form">
+	    		<div class="inline fields">
+					<div class="five wide field">
+					    <label>Type:</label>
+					    <select name="conditype" class="ui search dropdown">
+					      	<option value="">Select</option>
+					      	<option value="0">(Empty)</option>
+					      	<option value="OTHERWISE">Other</option>
+					      	<option value="EXCEPTION">Exception</option>
+					      	<option value="WORKFLOWBEAN">Transition by Business Object</option>
+					      	<option value="CONDITION">Condition</option>
+					      	<option value="TACHE">Transition by Step Name</option>
+					      	<option value="USERDEFINE">User Defined</option>
+					      	<option value="DEFAULTEXCEPTION">Default Exception</option>
+					      	<option value="CUSTOM">Custom Transition</option>
+					    </select>
+					</div>
+	    		</div>
+	    		<!-- Condition Settings - Type - Exception -->
+				<div class="myitem hideDiv exceptionDiv">
+					<div class="five wide field">
+					    <label>Please select an exception:</label>
+					    <select name="condiException" class="ui search dropdown">
+					      	<option value="Please select an exception">Please select an exception</option>
+					    </select>
+					</div>
+	            </div>
+	            <!-- Condition Settings - Type - Transition by Business Object -->
+	            <div class="myitem hideDiv workflowbeanDiv">
+		            <div class="inline fields">
+						<div class="five wide field">
+						    <label>Business Object:</label>
+						    <select name="bean" class="ui search dropdown">
+						      	<option value="">Please select a business object</option>
+						      	<option value="0">(Empty)</option>
+						      	{@each bean.opts as option, index}
+									<option value="{{=option.value}}">{{=option.name}}</option>
+								{@/each}
+						    </select>
+						</div>
+						<div class="five wide field">
+						    <label>Param Field:</label>
+						    <select name="paramField" class="ui search dropdown">
+						      	<option value="0">Default</option>
+						    </select>
+						</div>
+					</div>
+					<!-- Business Object - Sender -->
+					<div class="myitem hideDiv detailDiv">
+		            	<div class="inline three fields">
+							<div class="five wide field">
+							    <label>Method:</label>
+							    <select name="key" class="ui search dropdown wide">
+							      	<option value="">Please select</option>
+							      	<option value="0">(Empty)</option>
+							      	<option value="CorpName">Get Org Name</option>
+							      	<option value="Extattr">Get Person Extended Attributes 1</option>
+							      	<option value="MObilephone">Get Person Mobile Number</option>
+							      	<option value="Firstname">Get Person Last Name</option>
+							      	<option value="Gender">Get Person Gender</option>
+							      	<option value="Birthday">Get Person Birth Date</option>
+							      	<option value="Securitylevel">Get Person Security Level</option>
+							      	<option value="Mainemail">Get Person Primary EMAI</option>
+							      	<option value="Lastname">Get Person First Name</option>
+							      	<option value="Duty">Get Person Position</option>
+							      	<option value="Homeaddress">Get Person Home Address</option>
+							      	<option value="AdminLevel">Get Person Level</option>
+							      	<option value="Workno">Get Person Employee ID</option>
+							      	<option value="Callname">Get Person Title</option>
+							      	<option value="Otheremail">Get Person Secondary EMAIL</option>
+							      	<option value="Instantmessage">Get Person IM Handle</option>
+							      	<option value="Name">Get Person Full Name</option>
+							      	<option value="Officeaddress">Get Person Work Location ID</option>
+							      	<option value="Fixedphone">Get Person Landline Number</option>
+							    </select>
+							</div>
+		            		<div class="field">
+							    <label>Condition 1:</label>
+							    <select name="sign_one" class="ui search dropdown condition_sel">
+							      	<option value="">Please select</option>
+							    </select>
+							</div>
+							<div class="field">
+							    <label>Reference Value 1:</label>
+							    <input type="text" name="displayValue_one" placeholder="Reference Value">
+							</div>
+		            	</div>
+		            	<div class="inline three fields">
+							<div class="five wide field">
+							    <label>Relation:</label>
+							    <select name="fieldCondition_type" class="ui search dropdown">
+							      	<option value="AND">AND</option>
+							      	<option value="||">OR</option>
+							    </select>
+							</div>
+		            		<div class="field">
+							    <label>Condition 2:</label>
+							    <select name="sign_two" class="ui search dropdown condition_sel">
+							      	<option value="">Please select</option>
+							    </select>
+							</div>
+							<div class="field">
+							    <label>Reference Value 2:</label>
+							    <input type="text" name="displayValue_two" placeholder="Reference Value">
+							</div>
+		            	</div>
+		            </div>
+
+					<div class="fields">
+						<div class="five wide field">
+							<button class="ui positive basic mini button condition_addBtn"><i class="icon plus"></i> Add Condition</button>
+							<button class="ui negative basic mini button condition_removeBtn"><i class="icon remove"></i> Delete Condition</button>
+							
+						</div>
+						<div class="ten wide field">
+							<div class="two fields">
+								<div class="seven wide field">
+			            	   		<input type="text" name="beanConditions_type" placeholder="Overall Relation" readonly>			
+			            	   	</div>
+			            	   	<div class="field">
+									<button class="ui facebook mini button relationshipPlaBtn"><i class="write icon"></i>Relation Settings</button>
+			            	   	</div>
+			            	</div>
+						</div>
+		            </div>
+					<div class="ui divider hidden"></div>
+			        <div class="ui grid conditionList2">
+					  	<div class="computer only row">
+					  		<div class="tablet computer column">
+					  			<table class="ui blue sortable selectable fixed single line celled striped compact table">
+					  				<thead>
+										<tr>
+											<th class="two wide">ID</th>
+											<th class="two wide">Business Object</th>
+											<th class="two wide">Param Field</th>
+											<th class="two wide">Method</th>
+											<th class="two wide">Operator 1</th>
+											<th class="two wide">Reference Value 1</th>
+											<th class="two wide">Relation</th>
+											<th class="two wide">Operator 2</th>
+											<th class="two wide">Reference Value 2</th>
+											<th class="two wide">Return Type</th>
+										</tr>
+									</thead>
+									<tbody>
+										
+									</tbody>
+								</table>
+					  		</div>
+					  	</div>
+					</div>	
+					
+	            </div>
+	            <!-- Condition Settings - Type - Condition -->
+	            <div class="myitem hideDiv conditionDiv">
+	            	<div class="ui horizontal divider">Field Condition</div>
+	            	<div class="inline fields">
+						<div class="five wide field">
+						    <label>Field:</label>
+						    <select name="key" class="ui search dropdown">
+						      	<option value="">Please select</option>
+						      	<option value="0">(Empty)</option>
+						      	<option value="sourceReferenceId">sourceReferenceId</option>
+						      	<option value="formId">formId</option>
+						      	<option value="nextActivityName">nextActivityName</option>
+						      	<option value="formType">formType</option>
+						    </select>
+						</div>
+	            		<div class="five wide field">
+						    <label>Condition 1:</label>
+						    <select name="sign_one" class="ui search dropdown condition_sel">
+						      	<option value="">Please select</option>
+						    </select>
+						</div>
+						<div class="five wide field">
+						    <label>Reference Value 1:</label>
+						    <input type="text" name="displayValue_one" placeholder="Reference Value">
+						</div>
+	            	</div>
+	            	<div class="inline fields">
+						<div class="five wide field">
+						    <label>Relation:</label>
+						    <select name="fieldCondition_type" class="ui search dropdown">
+						      	<option value="AND">AND</option>
+						      	<option value="||">OR</option>
+						    </select>
+						</div>
+	            		<div class="five wide field">
+						    <label>Condition 2:</label>
+						    <select name="sign_two" class="ui search dropdown condition_sel">
+						      	<option value="">Please select</option>
+						      	<option value="0">(Empty)</option>
+						    </select>
+						</div>
+						<div class="five wide field">
+						    <label>Reference Value 2:</label>
+						    <input type="text" name="displayValue_two" placeholder="Reference Value">
+						</div>
+	            	</div>
+					<div class="inline fields">
+						<div class="five wide field">
+			            	<button class="ui positive basic mini button condition_addBtn"><i class="icon plus"></i> Add Condition</button>
+							<button class="ui negative basic mini button condition_removeBtn"><i class="icon remove"></i> Delete Condition</button>
+						</div>
+						<div class="five wide field">
+						    <label>Overall Relation:</label>
+						    <select name="fieldConditions_type" class="ui search dropdown">
+						      	<option value="AND">AND</option>
+						      	<option value="||">OR</option>
+						    </select>
+						</div>
+					</div>
+					<div class="ui divider hidden"></div>
+			        <div class="ui grid conditionList">
+					  	<div class="computer only row">
+					  		<div class="tablet computer column">
+					  			<table class="ui blue sortable selectable celled striped compact table">
+					  				<thead>
+										<tr>
+											<th class="three wide">Field</th>
+											<th class="three wide">Condition 1</th>
+											<th class="three wide">Reference Value 1</th>
+											<th class="two wide">Relation</th>
+											<th class="three wide">Condition 2</th>
+											<th class="three wide">Reference Value 2</th>
+											<th class="three wide">Type</th>
+										</tr>
+									</thead>
+									<tbody>
+										
+									</tbody>
+								</table>
+					  		</div>
+					  	</div>
+					</div>
+	            </div>
+	            <!-- Condition Settings - Type - User Defined -->
+				<div class="myitem hideDiv userdefineDiv">
+					<div class="inline fields">	
+						<div class="five wide field">
+						    <label>Condition:</label>
+						    <input name="condition_data" type="text" placeholder="Condition">
+						</div>
+					</div>
+	            </div>
+	            <!-- Condition Settings - Type - Custom Transition -->
+				<div class="myitem hideDiv customDiv">
+					<div class="ui form">
+					  	<div class="field">
+					  	  	<label>Expression:</label>
+					  	  	<textarea></textarea>
+					  	</div>
+					</div>
+	            </div>
+			</div>
+    	</div>
+    	<div class="ui bottom attached tab segment" data-tab="four/c">
+    		<div class="ui mini form">
+				<div class="five wide field transitionEventType">
+				    <label>Task Delegation Rule:</label>
+				    <select name="{{=selectId}}" class="ui dropdown">
+					    <option value="">Please select...</option>
+						{@each options as option,index}
+							<option value="{{=option.value}}">{{=option.show}}</option>
+						{@/each}
+					</select>
+				</div>
+				<div class="five wide field">
+				    <label>Transition Event:</label>
+				    <input type="text" name="transitionEvent" placeholder="Transition Event">
+				</div>
+			</div>
+    	</div>
+	</script><!-- Transition Properties tpl-end -->
+	
+
+	<script type="text/javascript" src="js/graphCommonEvent.js" charset="utf-8"></script>
+	<script type="text/javascript" src="js/flowchart.js" charset="utf-8"></script>
+	<script type="text/javascript" src="js/graphCreator.js" charset="utf-8"></script>
+</body>
+</html>
