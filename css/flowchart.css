@@ -469,3 +469,13 @@ html, body {
     overflow-x: hidden;
 }
 
+
+/*------------------------- Open XPDL -----------------------------*/
+.xpdl-chooser { padding: 14px 18px; max-height: 360px; overflow-y: auto; }
+.xpdl-chooser p { margin: 0 0 10px; }
+.xpdl-choice { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 3px; cursor: pointer; }
+.xpdl-choice:hover { background: #e6e7f5; }
+.xpdl-choice-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xpdl-choice-count { color: #888; font-size: 12px; white-space: nowrap; }
+.xpdl-warnings { margin: 10px 0 0; padding-left: 18px; }
+.xpdl-warnings li { margin: 4px 0; }

@@ -251,7 +251,7 @@ function handleViews() {
       $('#xmlContainer xmp').empty().text(XmlContent);
       break;
   }
-  var isSubGraphXpdlView = /Package_(.+)_second/.test(dataTab);
+  var isSubGraphXpdlView = dataTab !== 'second' && /_second$/.test(dataTab);
   if (isSubGraphXpdlView) {
     var blockActivity = graph_main.findActByActSetId(activitysetid);
     var subGraph = blockActivity.activitySet.graphCreator;
@@ -270,7 +270,7 @@ function handleSave() {
   var xml = $('#xmlContainer xmp').text();
   var xpdl_top = /*This block should be obtainable from WfDSystemConfig.xml, but the Applet and the xml differ*/
     '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
-    '   <Package xmlns="http://www.wfmc.org/2002/XPDL1.0" xmlns:xpdl="http://www.wfmc.org/2002/XPDL1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="' + package_id + '" Name="New Package" xsi:schemaLocation="http://www.wfmc.org/2002/XPDL1.0 http://wfmc.org/standards/dtd/TC-1025_schema_10_xpdl.xsd">' +
+    '   <Package xmlns="http://www.wfmc.org/2002/XPDL1.0" xmlns:xpdl="http://www.wfmc.org/2002/XPDL1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="' + package_id + '" Name="' + xmlEsc(package_name) + '" xsi:schemaLocation="http://www.wfmc.org/2002/XPDL1.0 http://wfmc.org/standards/dtd/TC-1025_schema_10_xpdl.xsd">' +
     '       <PackageHeader>' +
     '           <XPDLVersion>1.0</XPDLVersion>' +
     '           <Vendor>GENTLESOFT</Vendor>' +
@@ -320,7 +320,7 @@ function handleSave() {
     '           <ExtendedAttribute Name="Version" Value="1.4.2"/>' +
     '       </ExtendedAttributes>' +
     '   </Package>';
-  var xml_top = '<?xml version="1.0" encoding="UTF-8"?><pkg-config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="' + package_id + '" Name="New Package" Version="" xsi:noNamespaceSchemaLocation="../dtd/flowactconfig.xsd">';
+  var xml_top = '<?xml version="1.0" encoding="UTF-8"?><pkg-config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="' + package_id + '" Name="' + xmlEsc(package_name) + '" Version="" xsi:noNamespaceSchemaLocation="../dtd/flowactconfig.xsd">';
   var xml_end = '</pkg-config>';
   xpdl = vkbeautify.xml(xpdl_top + xpdl + xpdl_end);
   xml = vkbeautify.xml(xml_top + xml + xml_end);
@@ -501,9 +501,9 @@ function handleNodeMenuProp() {
           $('.post_condition select[name="splitType"]').parent().addClass('disabled');
         }
         postCondition.targetActivities.forEach(function(targetActivity) {// show target activities
-          $('.post_condition .list').append('<div class="item" acivityId="'+targetActivity.activity.id+'" jsonstr='+JSON.stringify(targetActivity.transition)+'>'+
+          $('.post_condition .list').append('<div class="item" acivityId="'+htmlEsc(targetActivity.activity.id)+'" jsonstr="'+htmlEsc(JSON.stringify(targetActivity.transition))+'">'+
                                             '    <div class="content">'+
-                                            '        <div class="">'+targetActivity.activity.title+'</div>'+
+                                            '        <div class="">'+htmlEsc(targetActivity.activity.title)+'</div>'+
                                             '    </div>'+
                                             '</div>');
         });
@@ -568,7 +568,7 @@ function handleNodeMenuProp() {
         var options ='<option value="">Please select</option><option value="0">(Empty)</option>';
         participants.forEach(function(participant) {
           var rol = participant.conventional_definition_name ? participant.conventional_definition_name + "-rol" : participant.conventional_definition_id + "-rol";
-          options += '<option value="' + participant.conventional_definition_id + '">' + rol + '</option>';
+          options += '<option value="' + htmlEsc(participant.conventional_definition_id) + '">' + htmlEsc(rol) + '</option>';
         });
         $('.conventional select[name="definition_role"]').empty().append(options);
       });
@@ -676,3 +676,226 @@ function edgeAssociateNode(jsonObj) {
 }
 
 
+
+/**
+ * Toolbar - Open XPDL
+ */
+function handleOpenXpdl() {
+  var input = document.getElementById('xpdl-file-input');
+  input.value = '';
+  input.click();
+}
+
+function openXpdlFile(file) {
+  if (!file) return;
+  readTextFile(file, function(err, text) {
+    if (err) {
+      layer.alert('Could not read the file: ' + htmlEsc(err.message), {icon: 2, title: 'Open XPDL'});
+      return;
+    }
+    var pkg;
+    try {
+      pkg = XpdlImport.read(text);
+    } catch (e) {
+      layer.alert('<b>' + htmlEsc(file.name) + '</b> could not be opened.<br><br>' + htmlEsc(e.message), {icon: 2, title: 'Open XPDL'});
+      return;
+    }
+    chooseXpdlProcess(pkg, file.name, function(index) {
+      confirmReplaceDiagram(function() {
+        loadXpdlProcess(pkg, index);
+      });
+    });
+  });
+}
+
+function readTextFile(file, callback) {
+  var reader = new FileReader();
+  var useDecoder = typeof TextDecoder !== 'undefined';
+  reader.onload = function() {
+    try {
+      callback(null, useDecoder ? XpdlImport.decode(reader.result) : reader.result);
+    } catch (e) {
+      callback(e);
+    }
+  };
+  reader.onerror = function() {
+    callback(reader.error || new Error('read error'));
+  };
+  if (useDecoder) {
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.readAsText(file);
+  }
+}
+
+function chooseXpdlProcess(pkg, fileName, done) {
+  var procs = pkg.processes;
+  if (procs.length === 1) {
+    done(0);
+    return;
+  }
+  var best = 0;
+  procs.forEach(function(p, i) {
+    if (p.activityCount > procs[best].activityCount) best = i;
+  });
+  var html = '<div class="xpdl-chooser"><p><b>' + htmlEsc(fileName) + '</b> contains ' + procs.length +
+    ' processes. Choose the one to open:</p>';
+  procs.forEach(function(p, i) {
+    var label = p.name + (p.poolName && p.poolName !== p.name ? ' (' + p.poolName + ')' : '');
+    html += '<label class="xpdl-choice">' +
+      '<input type="radio" name="xpdl-process" value="' + i + '"' + (i === best ? ' checked' : '') + '>' +
+      '<span class="xpdl-choice-name">' + htmlEsc(label) + '</span>' +
+      '<span class="xpdl-choice-count">' + p.activityCount + (p.activityCount === 1 ? ' activity' : ' activities') + '</span>' +
+      '</label>';
+  });
+  html += '</div>';
+  layer.open({
+    type: 1,
+    title: 'Open XPDL',
+    area: '480px',
+    offset: '120px',
+    content: html,
+    btn: ['Open', 'Cancel'],
+    yes: function(index, layero) {
+      var value = layero.find('input[name="xpdl-process"]:checked').val();
+      layer.close(index);
+      done(parseInt(value, 10) || 0);
+    }
+  });
+}
+
+function confirmReplaceDiagram(proceed) {
+  var hasContent = graphPool.pools.some(function(graph) {
+    return graph.nodes && graph.nodes.length;
+  });
+  if (!hasContent) {
+    proceed();
+    return;
+  }
+  layer.confirm('Opening this file replaces the current diagram. Continue?', {
+    icon: 0,
+    title: 'Open XPDL',
+    btn: ['Open', 'Cancel'],
+    offset: '180px'
+  }, function(index) {
+    layer.close(index);
+    proceed();
+  });
+}
+
+function loadXpdlProcess(pkg, index) {
+  var result;
+  try {
+    result = XpdlImport.build(pkg, index);
+  } catch (e) {
+    layer.alert('The process could not be imported.<br><br>' + htmlEsc(e.message), {icon: 2, title: 'Open XPDL'});
+    return;
+  }
+
+  // close block-activity tabs and drop their graphs
+  $('.full-right>.menu>.item').not('[data-tab="tab_main"]').remove();
+  $('.full-right>.tab').not('[data-tab="tab_main"]').remove();
+  graphPool.pools = graphPool.pools.filter(function(graph) {
+    return graph.containerId === 'tab_main';
+  });
+  $('.full-right>.menu>.item[data-tab="tab_main"]').trigger('click');
+  graphPool.updateGraphActiveById('tab_main');
+  $('[data-tab="tab_main"] .full-right-btn .item[data-tab="first"]').trigger('click');
+
+  graph_main.nodes = result.nodes;
+  graph_main.edges = result.edges;
+  graph_main.participants = result.participants;
+  graph_main.state.selectedNode = null;
+  graph_main.state.selectedEdge = null;
+  graph_main.updateGraph();
+
+  applyXpdlGlobals(result);
+  fitGraphToView(graph_main);
+
+  var s = result.stats;
+  var summary = 'Opened "' + htmlEsc(result.processName) + '": ' + s.activities + ' activities, ' +
+    s.transitions + ' transitions' + (s.blocks ? ', ' + s.blocks + ' block activities' : '') + '.';
+  if (result.warnings.length) {
+    layer.alert(summary + '<ul class="xpdl-warnings"><li>' + result.warnings.map(htmlEsc).join('</li><li>') + '</li></ul>', {
+      icon: 0,
+      title: 'Open XPDL',
+      area: '480px'
+    });
+  } else {
+    layer.msg(summary, {icon: 1, offset: '180px', time: 2500});
+  }
+}
+
+// make the imported process the current one (ids, names, id sequences)
+function applyXpdlGlobals(result) {
+  var safe = function(s) {
+    return String(s || '').replace(/[^A-Za-z0-9_-]/g, '_');
+  };
+  if (result.processId) workflow_id = safe(result.processId);
+  if (result.processName) workflow_name = result.processName;
+  if (result.packageId) package_id = safe(result.packageId);
+  if (result.packageName) package_name = result.packageName;
+
+  seqer_nodeID.set_prefix(workflow_id + '_Act');
+  seqer_edgeID.set_prefix(workflow_id + '_Tra');
+  seqer_participantID.set_prefix(workflow_id + '_Par');
+  seqer_blockId.set_prefix(workflow_id + '_Ase');
+
+  // continue numbering after the highest id already in the file
+  var max = {Act: 0, Tra: 0, Ase: 0, Par: 0};
+  var note = function(id) {
+    var m = /_(Act|Tra|Ase|Par)([0-9]+)$/.exec(String(id || ''));
+    if (m) max[m[1]] = Math.max(max[m[1]], parseInt(m[2], 10));
+  };
+  (function walk(graph, depth) {
+    if (!graph || depth > 50) return;
+    (graph.nodes || []).forEach(function(node) {
+      note(node.id);
+      if (node.activitySet) {
+        note(node.activitySet.activitySetId);
+        walk(node.activitySet.graphCreator, depth + 1);
+      }
+    });
+    (graph.edges || []).forEach(function(edge) {
+      note(edge.edgeId);
+    });
+  })(result, 0);
+  (result.participants || []).forEach(function(p) {
+    note(p.conventional_definition_id);
+  });
+  seqer_nodeID.set_seq(max.Act + 1);
+  seqer_edgeID.set_seq(max.Tra + 1);
+  seqer_blockId.set_seq(max.Ase + 1);
+  seqer_participantID.set_seq(max.Par + 1);
+
+  // labels
+  if (typeof $ !== 'undefined' && $('.full-right').length) {
+    $('.full-right>.menu>.item[data-tab="tab_main"]').html('<i class="remove red icon"></i>' + htmlEsc(workflow_name));
+    $('[data-tab="tab_main"] .component-name span').text(workflow_name);
+    $('[data-tab="tab_main"] .component-prop').html(
+      '<div>' +
+      '  <div name="id" class="prop-value"><span>id:</span><span>' + htmlEsc(workflow_id) + '</span></div>' +
+      '  <div name="name" class="prop-value"><span>Name:</span><span>' + htmlEsc(workflow_name) + '</span></div>' +
+      '</div>' +
+      '<div class="clearfix"></div>');
+  }
+}
+
+// zoom out (never in) so the whole diagram is visible
+function fitGraphToView(graph) {
+  var svgEl = graph.svg.node();
+  var rect = svgEl.getBoundingClientRect();
+  var width = rect.width || svgEl.clientWidth || 1000,
+    height = rect.height || svgEl.clientHeight || 500;
+  var maxX = 0,
+    maxY = 0;
+  graph.nodes.forEach(function(n) {
+    maxX = Math.max(maxX, n.x + 60);
+    maxY = Math.max(maxY, n.y + 60);
+  });
+  var extent = graph.dragSvg.scaleExtent();
+  var scale = Math.min(1, maxX ? width / maxX : 1, maxY ? height / maxY : 1);
+  scale = Math.max(scale, extent[0]);
+  graph.dragSvg.scale(scale).translate([0, 0]);
+  graph.svgG.attr('transform', 'translate(0,0) scale(' + scale + ')');
+}

@@ -2,6 +2,7 @@
 var package_id = '${param.processid}';
 package_id = package_id.indexOf('Package_') !== -1 ? package_id : 'Package_'+randomWord(false, 8);
 var workflow_name = 'Process';
+var package_name = 'New Package';
 var workflow_id = package_id+'_Wor1';
 var create_time = new Date().pattern('yyyy-MM-dd HH:mm:ss');// should be read from xpdl
 var create_type = '${param.kind}';
@@ -70,7 +71,7 @@ $(function() {
 		var xml = $('#xmlContainer xmp').text();
 		var xpdl_top =
 			'<?xml version="1.0" encoding="UTF-8" standalone="no"?>'+
-		    '<Package xmlns="http://www.wfmc.org/2002/XPDL1.0" xmlns:xpdl="http://www.wfmc.org/2002/XPDL1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="'+package_id+'" Name="New Package" xsi:schemaLocation="http://www.wfmc.org/2002/XPDL1.0 http://wfmc.org/standards/dtd/TC-1025_schema_10_xpdl.xsd">'+
+		    '<Package xmlns="http://www.wfmc.org/2002/XPDL1.0" xmlns:xpdl="http://www.wfmc.org/2002/XPDL1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="'+package_id+'" Name="'+xmlEsc(package_name)+'" xsi:schemaLocation="http://www.wfmc.org/2002/XPDL1.0 http://wfmc.org/standards/dtd/TC-1025_schema_10_xpdl.xsd">'+
 		    '    <PackageHeader>'+
 		    '        <XPDLVersion>1.0</XPDLVersion>'+
 		    '        <Vendor>GENTLESOFT</Vendor>'+
@@ -120,7 +121,7 @@ $(function() {
 		    '        <ExtendedAttribute Name="Version" Value="1.4.2"/>'+
 		    '    </ExtendedAttributes>'+
 		    '</Package>';
-		var xml_top = '<?xml version="1.0" encoding="UTF-8"?><pkg-config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="'+package_id+'" Name="New Package" Version="" xsi:noNamespaceSchemaLocation="../dtd/flowactconfig.xsd">';
+		var xml_top = '<?xml version="1.0" encoding="UTF-8"?><pkg-config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="'+package_id+'" Name="'+xmlEsc(package_name)+'" Version="" xsi:noNamespaceSchemaLocation="../dtd/flowactconfig.xsd">';
 		var xml_end = '</pkg-config>';
 		xpdl = vkbeautify.xml(xpdl_top + xpdl + xpdl_end);
 		xml = vkbeautify.xml(xml_top + xml + xml_end);
@@ -133,8 +134,8 @@ $(function() {
 /*  */
 $(function() {
 	var initProp = '<div>'+
-				   '	<div name="id" class="prop-value"><span>id:</span><span>'+workflow_id+'</span></div>'+
-				   '	<div name="name" class="prop-value"><span>Name:</span><span>'+workflow_name+'</span></div>'+
+				   '	<div name="id" class="prop-value"><span>id:</span><span>'+htmlEsc(workflow_id)+'</span></div>'+
+				   '	<div name="name" class="prop-value"><span>Name:</span><span>'+htmlEsc(workflow_name)+'</span></div>'+
 				   '</div>'+
 				   '<div class="clearfix"></div>';
 	$('.component-prop').append(initProp);

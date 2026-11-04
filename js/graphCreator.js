@@ -239,9 +239,17 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
         y: parseFloat(ev.originalEvent.offsetY)
       };
 
+      var dt = ev.originalEvent.dataTransfer;
+      if (dt && dt.files && dt.files.length) { // a file dropped from the desktop
+        if (typeof openXpdlFile === 'function') openXpdlFile(dt.files[0]);
+        return;
+      }
+      var trData = dt.getData('tr_data');
+      if (!trData) return;
+
       position = thisGraph.parsePosition(this, position);
 
-      var data = JSON.parse(ev.originalEvent.dataTransfer.getData('tr_data'));
+      var data = JSON.parse(trData);
       data = $.extend(data, position);
       var node = thisGraph.createNode(data);
 
@@ -386,7 +394,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
         selectedTr.attr('jsonstr', JSON.stringify(deadline));
         selectedTr.find('td').text(deadline.deadlineCondition);
       } else {
-        $('.timeout_limit tbody').append('<tr jsonstr= '+JSON.stringify(deadline)+'><td>'+deadline.deadlineCondition+'</td></tr>');
+        $('.timeout_limit tbody').append('<tr jsonstr= '+JSON.stringify(deadline)+'><td>'+xmlEsc(deadline.deadlineCondition)+'</td></tr>');
         $(".timeout_limit_grid .content-div").mCustomScrollbar("update");
         $(".timeout_limit_grid .content-div").mCustomScrollbar("scrollTo", "bottom", {scrollInertia: 1500});
       }
@@ -1306,7 +1314,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     var thisGraph = this;
     var extendAttr = node.extendAttr;
     var highLevel = node.highLevel;
-    var highLevelXpdl, isCreateNew, syncType, responsible;
+    var highLevelXpdl = '', isCreateNew, syncType, responsible;
     if (highLevel) {
       highLevelXpdl += highLevel.activityEndEvent?'<ExtendedAttribute Name="ActivityEndEvent" Value="'+highLevel.activityEndEvent+'"/>':'';
       highLevelXpdl += highLevel.activityCreateEvent?'<ExtendedAttribute Name="ActivityCreateEvent" Value="'+highLevel.activityCreateEvent+'"/>':'';
@@ -1366,7 +1374,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     if (extendAttr) {
       extendAttr.forEach(function(ext) {
         ExtendedAttributes +=
-            '   <ExtendedAttribute Name="'+JSON.parse(ext).name+'" Value="'+JSON.parse(ext).value+'"/>';
+            '   <ExtendedAttribute Name="'+xmlEsc(JSON.parse(ext).name)+'" Value="'+xmlEsc(JSON.parse(ext).value)+'"/>';
       });
     }
     ExtendedAttributes +=
@@ -1386,11 +1394,11 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     conventionalXpdl.autoAcceptAllAssignments = '<ExtendedAttribute Name="autoAcceptAllAssignments" Value="'+conventional.autoAcceptAllAssignments+'"/>';   
     conventionalXpdl.completeAllAssignments = conventional.completeAllAssignments?'<ExtendedAttribute Name="completeAllAssignments" Value="true"/>':'<ExtendedAttribute Name="completeAllAssignments" Value="false"/>';
     conventionalXpdl.assignmentsOrder = conventional.assignmentsOrder?'<ExtendedAttribute Name="assignmentsOrder" Value="true"/>':'<ExtendedAttribute Name="assignmentsOrder" Value="false"/>';
-    conventionalXpdl.description = conventional.description?'<Description>'+conventional.description+'</Description>':'';
+    conventionalXpdl.description = conventional.description?'<Description>'+xmlEsc(conventional.description)+'</Description>':'';
     conventionalXpdl.taskAssignMode = '<ExtendedAttribute Name="taskAssignMode" Value="'+conventional.taskAssign+'"/>';
     conventionalXpdl.MustActivity = '<ExtendedAttribute Name="MustActivity" Value="'+conventional.MustActivity+'"/>';
-    conventionalXpdl.participantID = conventional.participantID?'<ExtendedAttribute Name="ParticipantID" Value="'+conventional.participantID+'"/>':'<ExtendedAttribute Name="ParticipantID"/>';
-    conventionalXpdl.performer = conventional.performer?'<Performer>'+conventional.performer+'</Performer>':'';
+    conventionalXpdl.participantID = conventional.participantID?'<ExtendedAttribute Name="ParticipantID" Value="'+xmlEsc(conventional.participantID)+'"/>':'<ExtendedAttribute Name="ParticipantID"/>';
+    conventionalXpdl.performer = conventional.performer?'<Performer>'+xmlEsc(conventional.performer)+'</Performer>':'';
     return conventionalXpdl;
   };
 
@@ -1399,10 +1407,10 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     var thisGraph = this,
       timeoutLimit = node.timeoutLimit,
       deadlineXpdl = {};
-    deadlineXpdl.limit = timeoutLimit.limitTime?'<Limit>'+timeoutLimit.limitTime+'</Limit>':'';
-    deadlineXpdl.warnTime = timeoutLimit.warnTime?'<ExtendedAttribute Name="warnTime" Value="'+timeoutLimit.warnTime+'"/>':'<ExtendedAttribute Name="warnTime"/>';
-    deadlineXpdl.warnAgentClassName = timeoutLimit.warnAgentClassName?'<ExtendedAttribute Name="warnAgentClassName" Value="'+timeoutLimit.warnAgentClassName+'"/>':'<ExtendedAttribute Name="warnAgentClassName"/>';
-    deadlineXpdl.limitAgentClassName = timeoutLimit.limitAgentClassName?'<ExtendedAttribute Name="LimitAgentClassName" Value="'+timeoutLimit.limitAgentClassName+'"/>':'<ExtendedAttribute Name="LimitAgentClassName"/>';
+    deadlineXpdl.limit = timeoutLimit.limitTime?'<Limit>'+xmlEsc(timeoutLimit.limitTime)+'</Limit>':'';
+    deadlineXpdl.warnTime = timeoutLimit.warnTime?'<ExtendedAttribute Name="warnTime" Value="'+xmlEsc(timeoutLimit.warnTime)+'"/>':'<ExtendedAttribute Name="warnTime"/>';
+    deadlineXpdl.warnAgentClassName = timeoutLimit.warnAgentClassName?'<ExtendedAttribute Name="warnAgentClassName" Value="'+xmlEsc(timeoutLimit.warnAgentClassName)+'"/>':'<ExtendedAttribute Name="warnAgentClassName"/>';
+    deadlineXpdl.limitAgentClassName = timeoutLimit.limitAgentClassName?'<ExtendedAttribute Name="LimitAgentClassName" Value="'+xmlEsc(timeoutLimit.limitAgentClassName)+'"/>':'<ExtendedAttribute Name="LimitAgentClassName"/>';
     var Deadlines = '',
       deadlines_arr = [];
     if (timeoutLimit.deadline) {
@@ -1411,26 +1419,26 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
         deadlines_arr.push(deadline.exceptionName+','+deadline.deadlineCondition);
         if (deadline.execution == '') {
           Deadlines += '<Deadline>' +
-                       '    <DeadlineCondition>'+deadline.deadlineCondition+'</DeadlineCondition>' +
-                       '    <ExceptionName>'+deadline.exceptionName+'</ExceptionName>' +
+                       '    <DeadlineCondition>'+xmlEsc(deadline.deadlineCondition)+'</DeadlineCondition>' +
+                       '    <ExceptionName>'+xmlEsc(deadline.exceptionName)+'</ExceptionName>' +
                        '</Deadline>';
         }
         if (deadline.execution == 'SYNCHR') {
           Deadlines += '<Deadline Execution="SYNCHR">' +
-                       '    <DeadlineCondition>'+deadline.deadlineCondition+'</DeadlineCondition>' +
-                       '    <ExceptionName>'+deadline.exceptionName+'</ExceptionName>' +
+                       '    <DeadlineCondition>'+xmlEsc(deadline.deadlineCondition)+'</DeadlineCondition>' +
+                       '    <ExceptionName>'+xmlEsc(deadline.exceptionName)+'</ExceptionName>' +
                        '</Deadline>';
         }
         if (deadline.execution == 'ASYNCHR') {
           Deadlines += '<Deadline Execution="ASYNCHR">' +
-                       '    <DeadlineCondition>'+deadline.deadlineCondition+'</DeadlineCondition>' +
-                       '    <ExceptionName>'+deadline.exceptionName+'</ExceptionName>' +
+                       '    <DeadlineCondition>'+xmlEsc(deadline.deadlineCondition)+'</DeadlineCondition>' +
+                       '    <ExceptionName>'+xmlEsc(deadline.exceptionName)+'</ExceptionName>' +
                        '</Deadline>';
         }
       });
     }
     deadlineXpdl.deadlines = Deadlines;
-    deadlineXpdl.deadline = deadlines_arr.length>0? '<ExtendedAttribute Name="deadline" Value="'+deadlines_arr.join('|')+'"/>':'<ExtendedAttribute Name="deadline"/>';
+    deadlineXpdl.deadline = deadlines_arr.length>0? '<ExtendedAttribute Name="deadline" Value="'+xmlEsc(deadlines_arr.join('|'))+'"/>':'<ExtendedAttribute Name="deadline"/>';
     return deadlineXpdl;
   };
 
@@ -1493,8 +1501,8 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
 
     thisGraph.participants.forEach(function(p) {
       var extendedAttr = '',
-        description = p.conventional_definition_description? '<Description>'+p.conventional_definition_description+'</Description>':'',
-        p_name = p.conventional_definition_name?' Name="'+p.conventional_definition_name+'"':'';
+        description = p.conventional_definition_description? '<Description>'+xmlEsc(p.conventional_definition_description)+'</Description>':'',
+        p_name = p.conventional_definition_name?' Name="'+xmlEsc(p.conventional_definition_name)+'"':'';
       if (p && p.conventional_definition_participant) {
         extendedAttr  = '<ExtendedAttribute Name="PartyBeanId" Value="'+p.conventional_definition_participant+'"/>';
       } else {
@@ -1508,7 +1516,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
                         '<ExtendedAttribute Name="conditionXml"><![CDATA['+p.conditionXml.join(',')+']]></ExtendedAttribute>'+
                         '<ExtendedAttribute Name="roleName" Value="'+(p.roleName?p.roleName.join(','):"")+'"/>';
       }
-      participantsXpdl += '<Participant Id="'+p.conventional_definition_id+'"'+p_name+'>'+
+      participantsXpdl += '<Participant Id="'+xmlEsc(p.conventional_definition_id)+'"'+p_name+'>'+
                           '    <ParticipantType Type="ROLE"/>'+
                                description+
                           '    <ExtendedAttributes>'+
@@ -1525,7 +1533,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
   //generate all activity xml and add to xmlContainer
   GraphCreator.prototype.emergeAllXmlContent = function() {
     var thisGraph = this;
-    var start = '<WorkflowProcess Id="'+workflow_id+'" Name="'+workflow_name+'" endform-id="" endformschema="">',
+    var start = '<WorkflowProcess Id="'+xmlEsc(workflow_id)+'" Name="'+xmlEsc(workflow_name)+'" endform-id="" endformschema="">',
           end = '  <text-limit/>'+
                 '</WorkflowProcess>';
 
@@ -1533,7 +1541,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       activity = '';
     thisGraph.nodes.forEach(function(node) {
       if (node.type == 'activity') {
-        activity = '<activity Id="'+node.id+'" Name="'+node.title+'" form-id="" formdisplayschema="" hisformdisplayschema="">'+
+        activity = '<activity Id="'+node.id+'" Name="'+xmlEsc(node.title)+'" form-id="" formdisplayschema="" hisformdisplayschema="">'+
                    '  <operations/>'+
                    '  <text-limit/>'+
                    '</activity>';
@@ -1588,7 +1596,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       var conventionalXpdl = thisGraph.conventionalXpdl(node);
       switch (node.component) {
         case "ordinaryActivity": //Normal Activity
-          activitiesXpdl += '<Activity Id="'+node.id+'" Name="'+node.title+'">'+
+          activitiesXpdl += '<Activity Id="'+node.id+'" Name="'+xmlEsc(node.title)+'">'+
                                  deadlineXpdl.limit+
                                  conventionalXpdl.description+
                             '    <Implementation>'+
@@ -1604,10 +1612,10 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
                             '</Activity>';
           break;
         case "blockActivity": //Block Activity
-          activitiesXpdl += '<Activity Id="'+node.id+'" Name="'+node.title+'">' +
+          activitiesXpdl += '<Activity Id="'+node.id+'" Name="'+xmlEsc(node.title)+'">' +
                                  deadlineXpdl.limit +
                                  conventionalXpdl.description +
-                            '    <BlockActivity BlockId="Package_H00387DJ_Wor1_Ase2"/>' +
+                            '    <BlockActivity BlockId="'+xmlEsc(node.activitySet && node.activitySet.activitySetId)+'"/>' +
                                  conventionalXpdl.performer +
                                  conventionalXpdl.startMode +
                                  conventionalXpdl.finishMode +
@@ -1618,11 +1626,11 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
                             '</Activity>';   
           break;
         case "subFlowActivity": //Sub-Activity
-          activitiesXpdl += '<Activity Id="'+node.id+'" Name="'+node.title+'">' +
+          activitiesXpdl += '<Activity Id="'+node.id+'" Name="'+xmlEsc(node.title)+'">' +
                                  deadlineXpdl.limit +
                                  conventionalXpdl.description +
                             '    <Implementation>' +
-                            '        <SubFlow Execution="SYNCHR" Id="Package_6MT7F8C0_Wor4"/>' + //subFlowId - what is this?? 
+                            '        <SubFlow Execution="'+xmlEsc(node.subFlow && node.subFlow.execution || 'SYNCHR')+'" Id="'+xmlEsc(node.subFlow && node.subFlow.id || '')+'"/>' +
                             '    </Implementation>' +
                                  conventionalXpdl.performer +
                                  conventionalXpdl.startMode +
@@ -1634,7 +1642,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
                             '</Activity>';
           break;
         case "routeActivity": //Route Activity
-          activitiesXpdl += '<Activity Id="'+node.id+'" Name="'+node.title+'">' +
+          activitiesXpdl += '<Activity Id="'+node.id+'" Name="'+xmlEsc(node.title)+'">' +
                                  deadlineXpdl.limit +
                                  conventionalXpdl.description +
                             '    <Route/>' +
@@ -1660,12 +1668,12 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
 
     edges_act.forEach(function(edge) {
       var p = edge.postCondition;
-      var description = p.description? '<Description>'+p.description+'</Description>':'';
+      var description = p.description? '<Description>'+xmlEsc(p.description)+'</Description>':'';
       var extendedAttrsXpdl = '';
       if (p.extendedAttrs) {
         p.extendedAttrs.forEach(function(item) {
           var extendedAttr = JSON.parse(item);
-          extendedAttrsXpdl += '<ExtendedAttribute Name="'+extendedAttr.name+'" Value="'+extendedAttr.value+'"/>';
+          extendedAttrsXpdl += '<ExtendedAttribute Name="'+xmlEsc(extendedAttr.name)+'" Value="'+xmlEsc(extendedAttr.value)+'"/>';
         });
       }
       var transitionRuleType = p.transitionRuleType? '<ExtendedAttribute Name="TransitionRuleType" Value="'+p.transitionRuleType+'"/>':'<ExtendedAttribute Name="TransitionRuleType"/>';
@@ -1673,7 +1681,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       var conditype = p.conditype || '';
       var conditypeXpdl = conditype? '<ExtendedAttribute Name="conditype" Value="'+conditype+'"/>':'<ExtendedAttribute Name="conditype"/>';
       var condixml = p.condixml || '';
-      var condixmlXpdl = condixml? '<ExtendedAttribute Name="condixml" Value="'+condixml+'"/>':'';
+      var condixmlXpdl = condixml? '<ExtendedAttribute Name="condixml" Value="'+xmlEsc(condixml)+'"/>':'';
       var condition = '',
         condiException = '',
         content = '';
@@ -1730,16 +1738,16 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
         content = exp.replace(/\$\{a\}/, edge.target.id);
         condition = '<Condition Type="CONDITION">'+content+'</Condition>';
       } else if (conditype == 'USERDEFINE' || conditype == 'CUSTOM') { // User Defined, Custom Transition
-        condition = p.condition_data? '<Condition Type="CONDITION"><![CDATA[('+p.condition_data+')]]></Condition>':'';
+        condition = p.condition_data? '<Condition Type="CONDITION"><![CDATA[('+String(p.condition_data).replace(/\]\]>/g, ']]]]><![CDATA[>')+')]]></Condition>':'';
       } else if (conditype) { // Default Exception
         condition = '<Condition Type="'+conditype+'"/>';
       } else { // Other, Exception
         condition = '<Condition/>';
       }
       if (conditype == 'EXCEPTION') {
-        condiException = p.condiException? '<ExtendedAttribute Name="condiException" Value="'+p.condiException+'"/>':'';
+        condiException = p.condiException? '<ExtendedAttribute Name="condiException" Value="'+xmlEsc(p.condiException)+'"/>':'';
       }
-      transitions +=  '<Transition From="'+edge.source.id+'" Id="'+edge.edgeId+'" '+(p.edgeName? 'Name="'+p.edgeName+'"':'')+' To="'+edge.target.id+'">' +
+      transitions +=  '<Transition From="'+edge.source.id+'" Id="'+edge.edgeId+'" '+(p.edgeName? 'Name="'+xmlEsc(p.edgeName)+'"':'')+' To="'+edge.target.id+'">' +
                           condition +
                           description +
                       '   <ExtendedAttributes>' +
@@ -1747,7 +1755,9 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
                               condixmlXpdl +
                               transitionRuleType +
                               transitionEventXpdl +
-                      '       <ExtendedAttribute Name="TransitionEventType" Value="'+p.transitionEventType+'"/>' +
+                      (p.transitionEventType !== undefined && p.transitionEventType !== null && p.transitionEventType !== '' ?
+                      '       <ExtendedAttribute Name="TransitionEventType" Value="'+xmlEsc(p.transitionEventType)+'"/>' :
+                      '       <ExtendedAttribute Name="TransitionEventType"/>') +
                               conditypeXpdl +
                       '       <ExtendedAttribute Name="RoutingType" Value="'+edge.drawLine+'"/>' +
                               extendedAttrsXpdl +
@@ -1761,14 +1771,23 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
   //generate all activity xml and add to xpdlContainer
   GraphCreator.prototype.emergeAllxpdlContent = function() {
     var thisGraph = this;
-    var blockActivities = thisGraph.filterBlockActivities();
+    var blockActivities = [];
+    (function collect(graph, depth) {
+      if (!graph || !graph.nodes || depth > 50) return;
+      graph.nodes.forEach(function(node) {
+        if (node.component == 'blockActivity') {
+          blockActivities.push(node);
+          collect(node.activitySet && node.activitySet.graphCreator, depth + 1);
+        }
+      });
+    })(thisGraph, 0);
     var activitySets = '';
     if (blockActivities.length) {
       blockActivities.forEach(function(blockActivity) {
         var activitySetId = blockActivity.activitySet.activitySetId;
         var graph = blockActivity.activitySet.graphCreator;
         if (graph) {
-          activitySets += graph.emergeActivitySet(activitySetId);
+          activitySets += GraphCreator.prototype.emergeActivitySet.call(graph, activitySetId);
         } else {
           activitySets += '<ActivitySet Id="'+activitySetId+'"></ActivitySet>';
         }
@@ -1778,9 +1797,9 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     }
     
     var xpdl = '<WorkflowProcesses>' +
-              '   <WorkflowProcess AccessLevel="PUBLIC" Id="'+workflow_id+'" Name="'+workflow_name+'">' +
+              '   <WorkflowProcess AccessLevel="PUBLIC" Id="'+xmlEsc(workflow_id)+'" Name="'+xmlEsc(workflow_name)+'">' +
               '       <ProcessHeader DurationUnit="D">' +
-              '           <Created>'+create_time+'</Created>' +
+              '           <Created>'+xmlEsc(create_time)+'</Created>' +
               '           <Priority/>' +
               '       </ProcessHeader>' +
               '       <RedefinableHeader PublicationStatus="UNDER_TEST">' +
@@ -2445,13 +2464,13 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
     var thisGraph = this;
     $('.component-prop').empty().append(
         '<div>' + 
-        '  <div name="id" class="prop-value"><span>id:</span><span>' + d.id + '</span></div>'+
-        '  <div name="name" class="prop-value"><span>Name:</span><span>' + d.title + '</span></div>'+
+        '  <div name="id" class="prop-value"><span>id:</span><span>' + htmlEsc(d.id) + '</span></div>'+
+        '  <div name="name" class="prop-value"><span>Name:</span><span>' + htmlEsc(d.title) + '</span></div>'+
         '</div>' +
         '<div class="clearfix"></div>'+
         '<div> ' +
-        '  <div name="type" class="prop-value"><span>Type:</span><span>' + d.component + '</span></div>'+
-        '  <div name="" class="prop-value"><span>Performer:</span><span>None</span></div>' +
+        '  <div name="type" class="prop-value"><span>Type:</span><span>' + htmlEsc(d.component) + '</span></div>'+
+        '  <div name="" class="prop-value"><span>Performer:</span><span>' + (d.conventional && d.conventional.performer ? htmlEsc(d.conventional.performer) : 'None') + '</span></div>' +
         '</div>' +
         '<div class="clearfix"></div>');
   };
@@ -2758,6 +2777,7 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
       var graph_active;
       if (subGraph) {
         graph_active = new GraphCreator(containerId, svg, subGraph.nodes, subGraph.edges, subGraph.participants);
+        if (!subGraph.svg) editedBlockNode.activitySet.graphCreator = graph_active; // imported data
       } else {
         graph_active = new GraphCreator(containerId, svg, [], [], []);
         editedBlockNode.activitySet.graphCreator = graph_active;
@@ -2817,6 +2837,15 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
   };
 
 
+  // turn plain imported {nodes, edges} data into an object with GraphCreator methods
+  window.wrapGraphData = function(data) {
+    var g = Object.create(GraphCreator.prototype);
+    g.nodes = data.nodes || [];
+    g.edges = data.edges || [];
+    g.participants = data.participants || [];
+    return g;
+  };
+
   /**** MAIN ****/
   var container = d3.select('[data-tab="tab_main"] .svg-container').node(),
     containerId = 'tab_main';
@@ -2835,6 +2864,10 @@ document.onload = (function(d3, saveAs, Blob, vkbeautify) {
 
 function initCommonEvent() {
   $('.editor-toolbar').on('click', '.sign.in,.sign.out', handleImportOrExport);
+  $('#open-xpdl').on('click', handleOpenXpdl);
+  $('#xpdl-file-input').on('change', function() {
+    openXpdlFile(this.files && this.files[0]);
+  });
   $('.full-right').on('click', '.full-right-btn .item', handleViews);
   $('.editor-toolbar #delete-ele').on('click', handleDeleteNode);
   $('.editor-toolbar #zoom-enlarge,#zoom-narrow').on('click.zoom', handleClickZoom);
@@ -2878,234 +2911,17 @@ function initFlowChart() {
   return initialDate;
 }
 
-//Restore flowchart from xpdl format
+//Restore flowchart from xpdl format (any XPDL version, see js/xpdlImport.js)
 function importXpdl(str) {
-  str = vkbeautify.xmlmin(str);
-  var nodes = [],
-    edges = [],
-    initialDate = {},
-    error = {
-      messages: []
-    };
-
-  while ((str = str.replace(":", "_")) && (str.indexOf(":") > -1));
-  var root = $("<ROOT>" + str + "</ROOT>");
-  if (!root.find("WorkflowProcess").length) {
-    error.messages.push("XPDL:WorkflowProcess node not found");
-    console.error(error.messages);
+  try {
+    var pkg = XpdlImport.read(str);
+    var result = XpdlImport.build(pkg, 0);
+    applyXpdlGlobals(result);
+    return {nodes: result.nodes, edges: result.edges, participants: result.participants};
+  } catch (err) {
+    console.error('XPDL: ' + err.message);
     return false;
   }
-
-  var nodesId_seq = [], // node id sequence array
-    edgesId_seq = [], // edge id sequence array
-    participants = []; // Participant Set
-  // add activities to nodes
-  root.find("Activities Activity").each(function() {
-    var id = $(this).attr('id'),
-      name = $(this).attr('name'),
-      x = parseInt($(this).find('ExtendedAttribute[name=XOffset]').attr('Value')),
-      y = parseInt($(this).find('ExtendedAttribute[name=YOffset]').attr('Value'));
-      
-    var syncType = $(this).find('ExtendedAttribute[name=syncType]').attr('Value');
-    var responsible = $(this).find('ExtendedAttribute[name=responsible]').attr('Value');
-    var conventional = { // General
-        startMode: $(this).find('StartMode').html().replace(/<(\w+)>.+/g, function(match, p1) {return p1;}),
-        finishMode: $(this).find('FinishMode').html().replace(/<(\w+)>.+/g, function(match, p1) {return p1;}),
-        isMulInstance: $(this).find('ExtendedAttribute[name=isMulInstance]').attr('Value'),
-        isResponsible: $(this).find('ExtendedAttribute[name=isResponsible]').attr('Value'), // true or false
-        autoAcceptAllAssignments: $(this).find('ExtendedAttribute[name=autoAcceptAllAssignments]').attr('Value'), // true or false
-        completeAllAssignments: $(this).find('ExtendedAttribute[name=completeAllAssignments]').attr('Value'),
-        assignmentsOrder: $(this).find('ExtendedAttribute[name=assignmentsOrder]').attr('Value'),
-        description: $(this).find('Description').html(),
-        taskAssignMode: $(this).find('ExtendedAttribute[name=taskAssignMode]').attr('Value'),
-        mustActivity: $(this).find('ExtendedAttribute[name=MustActivity]').attr('Value'), // true or false
-        participantID: $(this).find('ExtendedAttribute[name=ParticipantID]').attr('Value'),
-        performer: $(this).find('Performer').html()
-      },
-      frontCondition = { // Pre-conditions
-        convergeType: $(this).find('TransitionRestriction Join').attr('Type'),
-        isCreateNew: $(this).find('ExtendedAttribute[name=isCreateNew]').attr('Value'),
-        voteModel: syncType && syncType.split('|')[0],
-        voteText: syncType && syncType.split('|')[1] || ''
-      },
-      timeoutLimit = { // Timeout Limits
-        limitTime: $(this).find('Limit').html(),
-        warnTime: $(this).find('ExtendedAttribute[name=warnTime]').attr('Value'),
-        warnAgentClassName: $(this).find('ExtendedAttribute[name=warnAgentClassName]').attr('Value'),
-        limitAgentClassName: $(this).find('ExtendedAttribute[name=LimitAgentClassName]').attr('Value'),
-        deadline: []
-      },
-      highLevel = { // Advanced
-        activityEndEvent: $(this).find('ExtendedAttribute[name=ActivityEndEvent]').attr('Value'),
-        activityCreateEvent: $(this).find('ExtendedAttribute[name=ActivityCreateEvent]').attr('Value'),
-        finishRule: $(this).find('ExtendedAttribute[name=FinishRule]').attr('Value') 
-      },
-      monitorinf = { // Monitoring Info
-        isResponsibleTem: $(this).find('ExtendedAttribute[name=isResponsibleTem]').attr('Value'),
-        responsible: responsible && responsible.split(',') || ''
-      };
-    $(this).find('Deadline').each(function() {
-      var json_obj = {
-          execution: $(this).attr('Execution'),
-          deadlineCondition: $(this).find('DeadlineCondition').html(),
-          exceptionName: $(this).find('ExceptionName').html()
-      };
-      timeoutLimit.deadline.push(JSON.stringify(json_obj));
-    });
-    
-    var extendAttr = []; // Extended Attribute Set
-    $(this).find('ExtendedAttribute[name=YOffset]').nextAll().each(function() { 
-      var json_obj = {name: $(this).attr('name'), value: $(this).attr('Value')};
-      extendAttr.push(JSON.stringify(json_obj));
-    });
-      
-    var d = {
-            id: id,
-            title: name,
-            //component should be determined from xpdl --- not changed
-            component: name=='Normal Activity'?'ordinaryActivity':name=='Block Activity'?'blockActivity':name=='Sub-Activity'?'subFlowActivity':name=='Route Activity'?'routeActivity':'',
-            type: 'activity',
-            x: x,
-            y: y,
-            conventional: conventional,
-            frontCondition: frontCondition,
-            postCondition: {},
-            extendAttr: extendAttr,
-            timeoutLimit: timeoutLimit,
-            highLevel: highLevel,
-            monitorinf: monitorinf,
-            eventTypeId: null
-          };
-      nodes.push(d);
-      
-      var result = /_Act([0-9]+)$/.exec(id);
-      nodesId_seq.push(result[1]);
-      
-  });
-  //links between activities added to edges
-  root.find("Transitions Transition").each(function() {
-    var from_actId = $(this).attr('From'),
-      to_actId = $(this).attr('To'),
-      edgeId = $(this).attr('Id'),
-      drawLine = $(this).find('[name=RoutingType]').attr('Value'),
-      transitionEventType = $(this).find('[name=TransitionEventType]').attr('Value');
-    var edge = {
-            edgeId: edgeId,
-            postCondition: {transitionEventType: transitionEventType},
-            drawLine: drawLine
-          };
-    
-    nodes.forEach(function(node, i) {
-      if (node.id == from_actId) {
-        edge.source = nodes[i];
-      }
-      if (node.id == to_actId) {
-        edge.target = nodes[i];
-      }
-    });
-    edges.push(edge);
-    var result = /_Tra([0-9]+)$/.exec(edgeId);
-      edgesId_seq.push(result[1]);
-  });
-  if (edgesId_seq.length) {// reset edge id sequence suffix
-    var seq = maxArr(edgesId_seq) + 1;
-    seqer_edgeID.set_seq(seq);
-  }
-  //start/end nodes and edges connected to start/end -------------------------- changed, untested
-  var regExp_act = /_Act([0-9]+)$/;
-  root.find('WorkflowProcess>ExtendedAttributes ExtendedAttribute[name$=OfWorkflow]').each(function() {
-    var label_name = $(this).attr('name');
-    var label_vals = $(this).attr('Value').split(';');
-    var d = {
-              id: label_vals[0],
-              /*title: 'Start',
-              component: 'startComponent',
-              type: 'start',*/
-              x: parseFloat(label_vals[2]),
-              y: parseFloat(label_vals[3]),
-              eventTypeId: null
-            };
-    switch (label_name) {
-      case 'StartOfWorkflow':
-        d.title = 'Start';
-        d.component = 'startComponent';
-        d.type = 'start';
-        nodes.push(d);
-
-        var result = regExp_act.exec(label_vals[0]);
-            nodesId_seq.push(result[1]);
-        if (label_vals[1] != -1) {
-          nodes.forEach(function(node, i) {
-            if (node.id == label_vals[1]) {
-              var edge = {
-                edgeId: seqer_edgeID.gensym(),  
-                drawLine: label_vals[4],
-                source: nodes[nodes.length-1],
-                target: node
-              };
-              edges.push(edge);
-            }
-          });
-        }
-        break;
-      case 'EndOfWorkflow':
-        d.title = 'End';
-        d.component = 'endComponent';
-        d.type = 'end';
-        nodes.push(d);
-
-        var match = regExp_act.exec(label_vals[0]);
-            nodesId_seq.push(match[1]);
-        if (label_vals[1] != -1) {
-          nodes.forEach(function(node, i) {
-            if (node.id == label_vals[1]) {
-              var edge = {
-                edgeId: seqer_edgeID.gensym(),  
-                drawLine: label_vals[4],
-                source: node,
-                target: nodes[nodes.length-1]
-              };
-              edges.push(edge);
-            }
-          });
-        }
-        break;
-    }
-  });
-  
-  if (nodesId_seq.length) {// reset node id sequence suffix
-    seqer_nodeID.set_seq(maxArr(nodesId_seq) + 1);
-  }
-  
-  //Participant Set
-  root.find("Participants Participant").each(function() {
-    var participant = {
-        conventional_definition_id: $(this).attr('Id'),
-        conventional_definition_name: $(this).attr('Name'),
-        conventional_definition_description: $(this).find('Description').html(),
-        conventional_definition_participant: $(this).find('ExtendedAttribute[name=PartyBeanId]').attr('Value'),
-        typeName: [],
-        isAppData: [],
-        itemName: [],
-        itemValue: [],
-        secLevelS: [],
-        secLevelE: [],
-        condition: [],
-        conditionXml: [],
-        roleName: []
-    };
-    $(this).find('ExtendedAttributes ExtendedAttribute').each(function() {
-      var value = $(this).attr('Value') || $(this).html();
-      participant[$(this).attr('Name')] = value.split(',');
-    });
-    
-    participants.push(participant);
-  });
-  
-  initialDate.nodes = nodes;
-  initialDate.edges = edges;
-  initialDate.participants = participants;
-  return initialDate;
 }
 
 /**

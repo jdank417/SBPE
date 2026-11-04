@@ -28,6 +28,8 @@
 		<div class="column pop-btn" id="zoom-narrow" data-content="Zoom Out" data-position="bottom center" data-variation="mini"><i class="zoom out icon"></i></div>
 		<div class="column pop-btn" id="reset-zoom" data-content="Reset Position" data-position="bottom center" data-variation="mini"><i class="maximize icon"></i></div>
 		<div class="divider"></div>
+		<div class="column pop-btn" id="open-xpdl" data-content="Open XPDL file" data-position="bottom center" data-variation="mini"><i class="folder open icon"></i></div>
+		<input type="file" id="xpdl-file-input" accept=".xpdl,.xml,.xpd,application/xml,text/xml" style="display:none">
 		<div class="column pop-btn" data-content="Import json" data-position="bottom center" data-variation="mini"><i class="sign in icon"></i></div>
 		<div class="column pop-btn small popup" data-content="Export json" data-position="bottom center" data-variation="mini"><i class="sign out icon"></i></div>
 		<div class="divider"></div>
@@ -1594,6 +1596,7 @@
 
 	<script type="text/javascript" src="js/jquery.js" charset="utf-8"></script>
 	<script type="text/javascript" src="js/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="js/xpdlImport.js" charset="utf-8"></script>
 	<script type="text/javascript" src="js/d3.v3.js" charset="utf-8"></script>
 	<script type="text/javascript" src="js/juicer-min.js" charset="utf-8"></script>
 	<script type="text/javascript" src="layer/layer.js" charset="utf-8"></script>

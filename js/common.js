@@ -325,3 +325,21 @@ if (!String.prototype.includes) {
     }
   };
 }*/
+
+/**
+ * Escape text for use inside XML attribute values / element content
+ */
+function xmlEsc(str) {
+	if (str === undefined || str === null) return '';
+	return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+/**
+ * Escape text before inserting it into HTML
+ */
+function htmlEsc(str) {
+	if (str === undefined || str === null) return '';
+	return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
