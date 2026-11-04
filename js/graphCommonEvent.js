@@ -262,19 +262,20 @@ function handleViews() {
   }
 }
 
-function handleSave() {
-  var dataTab = $('.full-right-btn .item.active').attr('data-tab');
-  $('.tab[data-tab="tab_main"] .item').not($('.full-right-btn .item.active')).trigger('click'); // trigger click to get xpdl and xml
-  $('.full-right-btn .item[data-tab="' + dataTab + '"]').trigger('click');
-  var xpdl = $('#xpdlContainer xmp').text();
-  var xml = $('#xmlContainer xmp').text();
+/**
+ * Toolbar - Save: writes the whole package as an .xpdl file
+ * (Chrome/Edge: "Save as" dialog, then later saves go to the chosen file;
+ *  other browsers: download)
+ */
+function buildPackageXpdl() {
+  var xpdl = graph_main.emergeAllxpdlContent();
   var xpdl_top = /*This block should be obtainable from WfDSystemConfig.xml, but the Applet and the xml differ*/
     '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
     '   <Package xmlns="http://www.wfmc.org/2002/XPDL1.0" xmlns:xpdl="http://www.wfmc.org/2002/XPDL1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="' + package_id + '" Name="' + xmlEsc(package_name) + '" xsi:schemaLocation="http://www.wfmc.org/2002/XPDL1.0 http://wfmc.org/standards/dtd/TC-1025_schema_10_xpdl.xsd">' +
     '       <PackageHeader>' +
     '           <XPDLVersion>1.0</XPDLVersion>' +
     '           <Vendor>GENTLESOFT</Vendor>' +
-    '           <Created>' + create_time + '</Created>' +
+    '           <Created>' + xmlEsc(create_time) + '</Created>' +
     '       </PackageHeader>' +
     '       <RedefinableHeader PublicationStatus="UNDER_TEST">' +
     '           <Author>Administrator</Author>' +
@@ -320,13 +321,74 @@ function handleSave() {
     '           <ExtendedAttribute Name="Version" Value="1.4.2"/>' +
     '       </ExtendedAttributes>' +
     '   </Package>';
-  var xml_top = '<?xml version="1.0" encoding="UTF-8"?><pkg-config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Id="' + package_id + '" Name="' + xmlEsc(package_name) + '" Version="" xsi:noNamespaceSchemaLocation="../dtd/flowactconfig.xsd">';
-  var xml_end = '</pkg-config>';
-  xpdl = vkbeautify.xml(xpdl_top + xpdl + xpdl_end);
-  xml = vkbeautify.xml(xml_top + xml + xml_end);
-  $('input[name=xpdlcontent]').val(xpdl);
-  $('input[name=xmlcontent]').val(xpdl);
-  $('#containerForm').submit();
+  return vkbeautify.xml('<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
+    (xpdl_top + xpdl + xpdl_end).replace(/^<\?xml[^>]*\?>/, ''));
+}
+
+var xpdlSaveHandle = null; // file chosen in this session's "Save as" dialog
+var xpdlFileName = null;   // name of the file that was opened, used as the suggested name
+
+function suggestedXpdlName() {
+  var base = xpdlFileName ? xpdlFileName.replace(/\.[^.]*$/, '') : (workflow_name || 'process');
+  return base.replace(/[\\\/:*?"<>|]+/g, '_').trim() + '.xpdl';
+}
+
+function handleSave() {
+  var content;
+  try {
+    content = buildPackageXpdl();
+  } catch (e) {
+    layer.alert('The diagram could not be converted to XPDL: ' + htmlEsc(e.message), {icon: 2, title: 'Save'});
+    return;
+  }
+  var done = function(name) {
+    layer.msg('Saved ' + htmlEsc(name), {icon: 1, offset: '180px', time: 1500});
+  };
+  var fail = function(e) {
+    if (e && e.name === 'AbortError') return; // dialog cancelled
+    layer.alert('Saving failed: ' + htmlEsc(e && e.message || e), {icon: 2, title: 'Save'});
+  };
+
+  if (window.showSaveFilePicker) {
+    var getHandle = xpdlSaveHandle ? Promise.resolve(xpdlSaveHandle) : window.showSaveFilePicker({
+      suggestedName: suggestedXpdlName(),
+      types: [{description: 'XPDL process', accept: {'application/xml': ['.xpdl', '.xml']}}]
+    });
+    getHandle.then(function(handle) {
+      xpdlSaveHandle = handle;
+      return handle.createWritable().then(function(writable) {
+        return writable.write(content).then(function() {
+          return writable.close();
+        });
+      }).then(function() {
+        done(handle.name);
+      });
+    }).catch(fail);
+    return;
+  }
+
+  // fallback: download
+  try {
+    var blob = new Blob([content], {type: 'application/xml;charset=utf-8'});
+    var name = suggestedXpdlName();
+    if (window.navigator.msSaveOrOpenBlob) {
+      window.navigator.msSaveOrOpenBlob(blob, name);
+    } else {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1000);
+    }
+    done(name);
+  } catch (e) {
+    fail(e);
+  }
 }
 
 /**
@@ -702,6 +764,8 @@ function openXpdlFile(file) {
     }
     chooseXpdlProcess(pkg, file.name, function(index) {
       confirmReplaceDiagram(function() {
+        xpdlFileName = file.name;
+        xpdlSaveHandle = null;
         loadXpdlProcess(pkg, index);
       });
     });

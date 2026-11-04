@@ -14,7 +14,8 @@ Features:
 - Import/export `json` data
 - Generates the corresponding `xml` and `xpdl`
 - **Open existing XPDL files** (toolbar folder icon, or drag a file onto the canvas)
-- Save (not finished yet, to be updated)
+- **Save** to an `.xpdl` file (toolbar save icon or Ctrl/Cmd+S). In Chrome/Edge you pick where to save and
+  later saves go to the same file; other browsers download the file
 
 ## Opening XPDL files
 

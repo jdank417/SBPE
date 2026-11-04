@@ -3009,7 +3009,18 @@ function initCommonEvent() {
   $('#helper').on('click', handleHelp);
   $('#flowComponents .components-btn').on('click', handleComponentsBtn);
   $("#delete-graph").on("click", clearGraph);
-  $('.editor-toolbar .icon.save').on('click', handleSave);
+  $('.editor-toolbar .icon.save').closest('.column').on('click', handleSave);
+  // the page is wrapped in a form left over from the original server version:
+  // never let it submit (Enter in a field would POST the page away)
+  $('#containerForm').on('submit', function(e) {
+    e.preventDefault();
+  });
+  $(document).on('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String.fromCharCode(e.which).toLowerCase() === 's') {
+      e.preventDefault();
+      handleSave();
+    }
+  });
   $('#rMenu .item').on('click', handleRightMenu);
   $('.full-left [name=addStartEndBtn]').on('click', handleAddStartEnd);
 }
